@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import type { ReactNode } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import {
   Outlet,
   createRootRoute,
@@ -62,6 +63,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       <body>
         {children}
         <Scripts />
+        <Analytics />
       </body>
     </html>
   )
