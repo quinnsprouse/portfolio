@@ -1,7 +1,7 @@
 ---
 title: Building a Minimal Portfolio with TanStack Start
 description: How I built this portfolio using modern web technologies while keeping it simple and fast
-date: 2024-12-18
+date: 2025-09-09
 readingTime: 3 min
 ---
 
