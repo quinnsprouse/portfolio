@@ -2,19 +2,6 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "redirects": [
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.quinnsprouse.com"
-        }
-      ],
-      "destination": "https://quinnsprouse.com",
-      "permanent": true
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
