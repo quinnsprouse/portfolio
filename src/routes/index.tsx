@@ -1,273 +1,365 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { ArrowUpRight, Github, Linkedin, Mail } from 'lucide-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
+import { ArrowUpRight } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+const getGitHubRepoInfo = createServerFn({ method: 'GET' })
+  .handler(async () => {
+    const repos = [
+      { name: 'bible-app', url: 'quinnsprouse/bible-app' },
+      { name: 'personal-photo-blog', url: 'quinnsprouse/personal-photo-blog' },
+      { name: 'workit', url: 'quinnsprouse/workit' },
+    ]
 
-type ProjectTone = 'emerald' | 'sky' | 'stone'
-type ProjectStatus = 'Active development' | 'Archived'
+    const repoData: Record<string, { lastUpdated: string }> = {}
 
-type Project = {
-  name: string
-  description: string
-  href: string
-  status: ProjectStatus
-  tone: ProjectTone
-  role: string
-  highlights: string[]
-}
+    // Check for GitHub token in environment variable (optional)
+    const token = process.env.GITHUB_TOKEN
 
-type Signal = {
-  title: string
-  body: string
-}
+    for (const repo of repos) {
+      try {
+        const headers: HeadersInit = {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Portfolio-Website'
+        }
 
-const socialLinks = [
-  { label: 'Email', href: 'mailto:hello@quinnsprouse.com', icon: Mail },
-  {
-    label: 'LinkedIn',
-    href: 'https://linkedin.com/in/quinnsprouse',
-    icon: Linkedin,
-  },
-  { label: 'GitHub', href: 'https://github.com/quinnsprouse', icon: Github },
-] as const
+        // Add auth header if token is available
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
 
-const toneClasses: Record<ProjectTone, string> = {
-  emerald:
-    'border-emerald-400/40 bg-emerald-400/10 text-emerald-700 dark:border-emerald-300/30 dark:text-emerald-200',
-  sky: 'border-sky-400/40 bg-sky-400/10 text-sky-700 dark:border-sky-300/30 dark:text-sky-200',
-  stone:
-    'border-zinc-400/40 bg-zinc-400/10 text-zinc-700 dark:border-zinc-300/30 dark:text-zinc-200',
-}
+        const response = await fetch(`https://api.github.com/repos/${repo.url}`, { headers })
 
-const quickSignals: Signal[] = [
-  {
-    title: 'Now',
-    body: 'Scaling Lumina Bible with deeper study flows and calm, long-form reading experiences.',
-  },
-  {
-    title: 'Exploring',
-    body: 'Documenting quiet travel narratives and new layout experiments for Pocket GR.',
-  },
-  {
-    title: 'Availability',
-    body: 'Open to select collaborations where thoughtful design and resilient engineering meet.',
-  },
-]
+        if (response.ok) {
+          const data = await response.json()
+          repoData[repo.name] = {
+            lastUpdated: new Date(data.pushed_at).toISOString().split('T')[0]
+          }
+        } else if (response.status === 404 || response.status === 401) {
+          // Private repo without auth - use fallback dates
+          const fallbackDates: Record<string, string> = {
+            'bible-app': '2024-12-18',
+            'personal-photo-blog': '2024-12-15',
+            'workit': '2023-11-22',
+          }
+          if (fallbackDates[repo.name]) {
+            repoData[repo.name] = { lastUpdated: fallbackDates[repo.name] }
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to fetch data for ${repo.name}:`, error)
+        // Use fallback dates on error
+        const fallbackDates: Record<string, string> = {
+          'bible-app': '2024-12-18',
+          'personal-photo-blog': '2024-12-15',
+          'workit': '2023-11-22',
+        }
+        if (fallbackDates[repo.name]) {
+          repoData[repo.name] = { lastUpdated: fallbackDates[repo.name] }
+        }
+      }
+    }
 
-const projects: Project[] = [
-  {
-    name: 'Lumina Bible',
-    description:
-      'A deep study companion helping people explore scripture with guided readings, contextual insights, and journaling designed for clarity.',
-    href: 'https://luminabible.app/',
-    status: 'Active development',
-    tone: 'emerald',
-    role: 'Product · Design · Engineering',
-    highlights: ['Guided study', 'Cross-device', 'Calm UI'],
-  },
-  {
-    name: 'Pocket GR',
-    description:
-      'A personal photography space for quiet travel moments, pairing minimal storytelling layouts with fast image curation.',
-    href: 'https://pocketgr.com/',
-    status: 'Active development',
-    tone: 'sky',
-    role: 'Design system · Front-end',
-    highlights: ['Photography', 'Story builder', 'Next.js'],
-  },
-  {
-    name: 'Workit',
-    description:
-      'A focused workout companion that turned routines into adaptable habit loops, making progress feel simple and sustainable.',
-    href: 'https://workit-three.vercel.app/',
-    status: 'Archived',
-    tone: 'stone',
-    role: 'Product experiment',
-    highlights: ['Workout flows', 'Responsive web', 'TypeScript'],
-  },
-]
+    return repoData
+  })
 
 export const Route = createFileRoute('/')({
   component: Home,
+  loader: async () => {
+    const githubData = await getGitHubRepoInfo()
+    return { githubData }
+  },
+  head: () => ({
+    meta: [
+      {
+        title: 'Quinn Sprouse - Product Engineer & Software Developer'
+      },
+      {
+        name: 'description',
+        content: 'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth. View my portfolio and latest projects.'
+      },
+      {
+        name: 'keywords',
+        content: 'Quinn Sprouse, software engineer, product engineer, full-stack developer, React, TypeScript, portfolio'
+      },
+      {
+        property: 'og:title',
+        content: 'Quinn Sprouse - Product Engineer & Software Developer'
+      },
+      {
+        property: 'og:description',
+        content: 'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth.'
+      },
+      {
+        property: 'og:type',
+        content: 'website'
+      },
+      {
+        property: 'og:url',
+        content: 'https://quinnsprouse.com'
+      },
+      {
+        property: 'og:site_name',
+        content: 'Quinn Sprouse Portfolio'
+      },
+      {
+        name: 'twitter:card',
+        content: 'summary'
+      },
+      {
+        name: 'twitter:title',
+        content: 'Quinn Sprouse - Product Engineer & Software Developer'
+      },
+      {
+        name: 'twitter:description',
+        content: 'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth.'
+      },
+      {
+        name: 'author',
+        content: 'Quinn Sprouse'
+      },
+      {
+        name: 'robots',
+        content: 'index, follow'
+      },
+      {
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1'
+      }
+    ],
+    links: [
+      {
+        rel: 'canonical',
+        href: 'https://quinnsprouse.com'
+      }
+    ]
+  })
 })
 
+interface Project {
+  title: string
+  description: string
+  link: string
+  year: string
+  status?: 'active' | 'archived'
+  repoKey?: string
+}
+
+interface Experience {
+  role: string
+  company: string
+  period: string
+}
+
+const projects: Project[] = [
+  {
+    title: 'Lumina Bible',
+    description: 'Deep study companion for scripture exploration',
+    link: 'https://luminabible.app',
+    year: '2024',
+    status: 'active',
+    repoKey: 'bible-app',
+  },
+  {
+    title: 'Pocket GR',
+    description: 'Photography space for quiet travel moments',
+    link: 'https://pocketgr.com',
+    year: '2024',
+    status: 'active',
+    repoKey: 'personal-photo-blog',
+  },
+  {
+    title: 'Workit',
+    description: 'Focused workout companion for habit building',
+    link: 'https://workit-three.vercel.app',
+    year: '2023',
+    status: 'archived',
+    repoKey: 'workit',
+  },
+]
+
+const experience: Experience[] = [
+  {
+    role: 'SDET',
+    company: 'Redi.Health',
+    period: '2024—Present',
+  },
+  {
+    role: 'Software Engineer',
+    company: 'MedInformatix',
+    period: '2023—2024',
+  },
+  {
+    role: 'Software Engineer',
+    company: 'The SOAR Initiative',
+    period: '2023—2024',
+  },
+  {
+    role: 'Frontend Engineer',
+    company: 'Aware (Mimecast)',
+    period: '2021—2023',
+  },
+  {
+    role: 'QA Engineer',
+    company: 'Aware',
+    period: '2020—2021',
+  },
+]
+
 function Home() {
-  const year = new Date().getFullYear()
-  const [emailLink, linkedinLink, githubLink] = socialLinks
+  const { githubData } = Route.useLoaderData()
+
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Quinn Sprouse",
+    "jobTitle": "Product Engineer",
+    "description": "Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth.",
+    "url": "https://quinnsprouse.com",
+    "sameAs": [
+      "https://github.com/quinnsprouse",
+      "https://linkedin.com/in/quinnsprouse"
+    ],
+    "email": "hello@quinnsprouse.com",
+    "worksFor": {
+      "@type": "Organization",
+      "name": "Redi.Health"
+    }
+  }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
-        <div className="h-[28rem] w-[28rem] -translate-y-1/2 rounded-full bg-gradient-to-b from-emerald-300/40 via-sky-200/30 to-transparent blur-3xl" />
-      </div>
-      <div className="pointer-events-none absolute bottom-[-8rem] right-[-4rem] h-[22rem] w-[22rem] rounded-full bg-gradient-to-tr from-rose-300/25 via-purple-300/20 to-transparent blur-[110px]" />
-
-      <main className="relative mx-auto flex min-h-screen max-w-5xl flex-col gap-24 px-6 py-16 sm:px-10 lg:px-16">
-        <header className="space-y-12">
-          <div className="space-y-8">
-            <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-muted-foreground">
-              <span className="flex items-center gap-2">
-                <span className="relative flex size-2.5">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/40" />
-                  <span className="relative size-2 rounded-full bg-emerald-400 shadow-[0_0_0_6px_rgba(16,185,129,0.15)]" />
-                </span>
-                <span>Quinn Sprouse</span>
-              </span>
-              <span className="hidden h-px min-w-[120px] flex-1 bg-gradient-to-r from-transparent via-border to-transparent sm:flex" />
-              <span>Product engineer & designer</span>
-            </div>
-
-            <div className="space-y-6">
-              <h1 className="text-balance text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl">
-                Crafting calm, considered digital products that feel inevitable.
-              </h1>
-              <p className="text-pretty text-lg text-muted-foreground sm:text-xl">
-                I build tools for focus, study, and personal disciplines—pairing human-centered design with resilient front-end architecture.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button size="lg" className="rounded-full px-6" asChild>
-                <a href={emailLink.href}>
-                  {emailLink.label} me
-                  <Mail className="size-4" />
-                </a>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="rounded-full px-6"
-                asChild
-              >
-                <a
-                  href={linkedinLink.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Connect on {linkedinLink.label}
-                  <ArrowUpRight className="size-4" />
-                </a>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full border border-border/60 bg-card/70 hover:bg-card"
-                asChild
-              >
-                <a
-                  href={githubLink.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="sr-only">{githubLink.label}</span>
-                  <Github className="size-4" />
-                </a>
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            {quickSignals.map((signal) => (
-              <div
-                key={signal.title}
-                className="group rounded-2xl border border-border/70 bg-card/70 p-5 shadow-[0_12px_40px_rgba(15,23,42,0.03)] transition duration-300 hover:border-foreground/20 hover:shadow-[0_16px_60px_rgba(15,23,42,0.08)]"
-              >
-                <div className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                  {signal.title}
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground group-hover:text-foreground">
-                  {signal.body}
-                </p>
-              </div>
-            ))}
-          </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <div className="mx-auto max-w-2xl px-6 py-16 md:py-24">
+        {/* Header */}
+        <header className="mb-16">
+          <h1 className="text-3xl font-light mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>Quinn Sprouse</h1>
+          <p className="text-base text-muted-foreground leading-relaxed" style={{ fontFamily: 'Inter, sans-serif' }}>
+            Product engineer focused on thoughtful digital experiences.
+            Currently building tools for study, focus, and personal growth.
+          </p>
         </header>
 
-        <section className="space-y-8">
-          <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-              Featured work
-            </p>
-            <h2 className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
-              Projects shaping how people study, move, and remember.
-            </h2>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
+        {/* Projects */}
+        <section className="mb-16">
+          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>Selected Work</h2>
+          <div className="space-y-4">
             {projects.map((project) => (
               <a
-                key={project.name}
-                href={project.href}
+                key={project.title}
+                href={project.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-col gap-5 rounded-3xl border border-border/70 bg-card/70 p-6 transition duration-300 hover:-translate-y-1 hover:border-foreground/20 hover:bg-card hover:shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
+                className="block group"
               >
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                    {project.role}
-                  </p>
-                  <Badge
-                    className={cn(
-                      'rounded-full border px-3 py-1 text-[0.7rem] font-medium uppercase tracking-[0.35em]',
-                      toneClasses[project.tone],
-                    )}
-                  >
-                    {project.status}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="flex items-center gap-2 text-2xl font-medium tracking-tight group-hover:text-foreground">
-                    {project.name}
-                    <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-1" />
-                  </h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground group-hover:text-foreground/90">
-                    {project.description}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {project.highlights.map((highlight) => (
-                    <Badge
-                      key={highlight}
-                      variant="outline"
-                      className="rounded-full border-border/60 bg-transparent px-3 py-1 text-xs font-medium text-muted-foreground transition group-hover:border-foreground/30 group-hover:text-foreground/90"
+                <div className="flex items-start justify-between py-2 border-b border-border/20 hover:border-border/40 transition-colors">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        {project.title}
+                      </span>
+                      <ArrowUpRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1" style={{ fontFamily: 'Inter, sans-serif' }}>
+                      {project.description}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 ml-4">
+                    <span className="text-sm text-muted-foreground font-mono">
+                      {project.year}
+                    </span>
+                    <span
+                      className={`relative group/status inline-block size-1.5 rounded-full ${
+                        project.status === 'active'
+                          ? 'bg-green-500'
+                          : 'bg-muted-foreground/30'
+                      }`}
+                      aria-label={project.status === 'active' ? 'Active development' : 'Archived'}
                     >
-                      {highlight}
-                    </Badge>
-                  ))}
+                      <span className="absolute bottom-full right-0 mb-2 hidden group-hover/status:block whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background">
+                        <div className="font-mono">{project.status === 'active' ? 'Active development' : 'Archived'}</div>
+                        {project.repoKey && githubData[project.repoKey]?.lastUpdated && (
+                          <div className="mt-0.5 font-mono text-[10px] opacity-70">
+                            Last updated: {githubData[project.repoKey].lastUpdated}
+                          </div>
+                        )}
+                      </span>
+                    </span>
+                  </div>
                 </div>
               </a>
             ))}
           </div>
         </section>
 
-        <footer className="mt-auto border-t border-border/60 pt-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>© {year} Quinn Sprouse. Crafted with intention.</p>
-            <div className="flex flex-wrap items-center gap-2">
-              {socialLinks.map((link) => {
-                const Icon = link.icon
-                const isExternal = link.href.startsWith('http')
-                return (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    target={isExternal ? '_blank' : undefined}
-                    rel={isExternal ? 'noopener noreferrer' : undefined}
-                    className="inline-flex items-center gap-2 rounded-full border border-border/70 px-3 py-1.5 transition hover:border-foreground/30 hover:text-foreground"
-                  >
-                    <Icon className="size-4" />
-                    <span>{link.label}</span>
-                  </a>
-                )
-              })}
-            </div>
+        {/* Experience */}
+        <section className="mb-16">
+          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>Experience</h2>
+          <div className="space-y-3">
+            {experience.map((exp) => (
+              <div key={exp.company} className="flex justify-between items-start py-2">
+                <div>
+                  <p className="text-base font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>{exp.role}</p>
+                  <p className="text-sm text-muted-foreground" style={{ fontFamily: 'Inter, sans-serif' }}>{exp.company}</p>
+                </div>
+                <span className="text-sm text-muted-foreground font-mono">
+                  {exp.period}
+                </span>
+              </div>
+            ))}
           </div>
+        </section>
+
+        {/* Contact */}
+        <section className="mb-16">
+          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>Contact</h2>
+          <div className="space-y-2">
+            <a
+              href="mailto:hello@quinnsprouse.com"
+              className="block text-sm hover:text-primary transition-colors font-mono"
+            >
+              hello@quinnsprouse.com
+            </a>
+            <a
+              href="https://github.com/quinnsprouse"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm hover:text-primary transition-colors font-mono"
+            >
+              github.com/quinnsprouse
+            </a>
+            <a
+              href="https://linkedin.com/in/quinnsprouse"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm hover:text-primary transition-colors font-mono"
+            >
+              linkedin.com/in/quinnsprouse
+            </a>
+          </div>
+        </section>
+
+        {/* Writing */}
+        <section className="mb-16">
+          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>Writing</h2>
+          <Link
+            to="/blog"
+            className="block text-base hover:text-primary transition-colors" style={{ fontFamily: 'Inter, sans-serif' }}
+          >
+            View blog →
+          </Link>
+        </section>
+
+        {/* Footer */}
+        <footer className="pt-8 border-t border-border/20">
+          <p className="text-sm text-muted-foreground font-mono">
+            © {new Date().getFullYear()} Quinn Sprouse
+          </p>
         </footer>
-      </main>
+      </div>
     </div>
   )
 }
