@@ -1,7 +1,6 @@
+/// <reference types="vite/client" />
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import fs from 'fs/promises'
-import path from 'path'
 import matter from 'gray-matter'
 
 interface BlogPost {
@@ -14,36 +13,42 @@ interface BlogPost {
 
 const getBlogPosts = createServerFn({ method: 'GET' })
   .handler(async () => {
-    const postsDirectory = path.join(process.cwd(), 'src/content/blog')
+    const modules = import.meta.glob<string>(
+      '../content/blog/*.{md,mdx}',
+      {
+        query: '?raw',
+        import: 'default'
+      }
+    )
 
-    try {
-      const files = await fs.readdir(postsDirectory)
-      const posts = await Promise.all(
-        files
-          .filter(file => file.endsWith('.mdx') || file.endsWith('.md'))
-          .map(async (file) => {
-            const filePath = path.join(postsDirectory, file)
-            const content = await fs.readFile(filePath, 'utf8')
-            const { data } = matter(content)
+    const posts = await Promise.all(
+      Object.entries(modules).map(async ([filePath, loadContent]) => {
+        try {
+          const file = await loadContent()
+          const { data } = matter(file)
+          const slug = filePath.split('/').pop()?.replace(/\.(mdx|md)$/i, '')
 
-            return {
-              slug: file.replace(/\.(mdx|md)$/, ''),
-              title: data.title || 'Untitled',
-              description: data.description || '',
-              date: data.date || '',
-              readingTime: data.readingTime || '5 min'
-            } as BlogPost
-          })
-      )
+          if (!slug) {
+            return null
+          }
 
-      // Sort by date, newest first
-      return posts.sort((a, b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      )
-    } catch (error) {
-      console.error('Error reading blog posts:', error)
-      return []
-    }
+          return {
+            slug,
+            title: data.title || 'Untitled',
+            description: data.description || '',
+            date: data.date || '',
+            readingTime: data.readingTime || '5 min'
+          } as BlogPost
+        } catch (error) {
+          console.error(`Error loading blog post metadata from ${filePath}:`, error)
+          return null
+        }
+      })
+    )
+
+    return posts
+      .filter((post): post is BlogPost => post !== null)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   })
 
 export const Route = createFileRoute('/blog/')({

@@ -1,7 +1,6 @@
+/// <reference types="vite/client" />
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
 import matter from 'gray-matter'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -17,21 +16,28 @@ interface BlogPostData {
 const getBlogPost = createServerFn({ method: 'GET' })
   .validator((slug: string) => slug)
   .handler(async ({ data: slug }) => {
-    const postsDirectory = path.join(process.cwd(), 'src/content/blog')
+    const modules = import.meta.glob<string>(
+      '../content/blog/*.{md,mdx}',
+      {
+        query: '?raw',
+        import: 'default'
+      }
+    )
+
+    const entry = Object.entries(modules).find(([filePath]) =>
+      filePath.endsWith(`${slug}.mdx`) || filePath.endsWith(`${slug}.md`)
+    )
+
+    if (!entry) {
+      console.error(`Blog post not found for slug: ${slug}`)
+      throw new Error('Post not found')
+    }
+
+    const [filePath, loadContent] = entry
 
     try {
-      // Try .mdx first, then .md
-      let filePath = path.join(postsDirectory, `${slug}.mdx`)
-      let fileContent: string
-
-      try {
-        fileContent = await fs.readFile(filePath, 'utf8')
-      } catch {
-        filePath = path.join(postsDirectory, `${slug}.md`)
-        fileContent = await fs.readFile(filePath, 'utf8')
-      }
-
-      const { data, content } = matter(fileContent)
+      const file = await loadContent()
+      const { data, content } = matter(file)
 
       return {
         title: data.title || 'Untitled',
@@ -41,7 +47,7 @@ const getBlogPost = createServerFn({ method: 'GET' })
         content
       } as BlogPostData
     } catch (error) {
-      console.error(`Error reading blog post ${slug}:`, error)
+      console.error(`Error loading blog post ${filePath}:`, error)
       throw new Error('Post not found')
     }
   })
