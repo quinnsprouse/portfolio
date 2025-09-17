@@ -2,6 +2,8 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { ArrowUpRight } from 'lucide-react'
 
+import { CardStack } from '@/components/card-stack'
+
 const getGitHubRepoInfo = createServerFn({ method: 'GET' })
   .handler(async () => {
     const repos = [
@@ -233,14 +235,37 @@ function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <div className="mx-auto max-w-2xl px-6 py-16 md:py-24">
+      <div className="mx-auto max-w-5xl px-6 py-16 md:px-10 md:py-24 lg:px-16">
         {/* Header */}
         <header className="mb-16">
-          <h1 className="text-3xl font-light mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>Quinn Sprouse</h1>
-          <p className="text-base text-muted-foreground leading-relaxed" style={{ fontFamily: 'Inter, sans-serif' }}>
-            Product engineer focused on thoughtful digital experiences.
-            Currently building tools for study, focus, and personal growth.
-          </p>
+          <div className="grid gap-12 md:grid-cols-[minmax(0,1.2fr)_minmax(280px,360px)] md:items-center lg:gap-20">
+            <div className="md:flex md:flex-col md:justify-center">
+              <h1 className="text-3xl font-light mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>Quinn Sprouse</h1>
+              <p className="text-base text-muted-foreground leading-relaxed" style={{ fontFamily: 'Inter, sans-serif' }}>
+                Product engineer focused on thoughtful digital experiences—currently working from Columbus, Ohio and
+                shaping tools that feel calm, tactile, and purposeful. Most days are spent iterating on{' '}
+                <a
+                  href="https://luminabible.app"
+                  className="underline decoration-dotted underline-offset-4 transition-colors hover:text-primary"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Lumina Bible
+                </a>{' '}
+                while documenting the journey in{' '}
+                <Link
+                  to="/blog"
+                  className="underline decoration-dotted underline-offset-4 transition-colors hover:text-primary"
+                >
+                  long-form notes
+                </Link>
+                .
+              </p>
+          </div>
+            <div className="flex justify-center md:justify-end md:pl-10 lg:pl-16">
+              <CardStack />
+            </div>
+          </div>
         </header>
 
         {/* Projects */}
