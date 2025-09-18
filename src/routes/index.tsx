@@ -3,6 +3,8 @@ import { createServerFn } from '@tanstack/react-start'
 import { ArrowUpRight } from 'lucide-react'
 
 import { CardStack } from '@/components/card-stack'
+import { ComesInGoesOutUnderline } from '@/components/underline/comes-in-goes-out-underline'
+import { GoesOutComesInUnderline } from '@/components/underline/goes-out-comes-in-underline'
 
 const getGitHubRepoInfo = createServerFn({ method: 'GET' })
   .handler(async () => {
@@ -352,37 +354,45 @@ function Home() {
         {/* Contact */}
         <section className="mb-16">
           <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>Contact</h2>
-          <div className="space-y-2">
-            <a
+          <div className="flex flex-col items-start space-y-2">
+            <ComesInGoesOutUnderline
+              as="a"
               href="mailto:quinnsprouse@gmail.com"
-              className="block text-sm hover:text-primary transition-colors font-mono"
+              className="inline-flex text-start font-mono text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
+              direction="left"
             >
               quinnsprouse@gmail.com
-            </a>
-            <a
+            </ComesInGoesOutUnderline>
+            <ComesInGoesOutUnderline
+              as="a"
               href="https://github.com/quinnsprouse"
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-sm hover:text-primary transition-colors font-mono"
+              className="inline-flex text-start font-mono text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
+              direction="right"
             >
               github.com/quinnsprouse
-            </a>
-            <a
+            </ComesInGoesOutUnderline>
+            <ComesInGoesOutUnderline
+              as="a"
               href="https://www.linkedin.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-sm hover:text-primary transition-colors font-mono"
+              className="inline-flex text-start font-mono text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
+              direction="left"
             >
               linkedin.com
-            </a>
-            <a
+            </ComesInGoesOutUnderline>
+            <ComesInGoesOutUnderline
+              as="a"
               href="https://x.com/QuinnSprouse"
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-sm hover:text-primary transition-colors font-mono"
+              className="inline-flex text-start font-mono text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
+              direction="right"
             >
               x.com/QuinnSprouse
-            </a>
+            </ComesInGoesOutUnderline>
           </div>
         </section>
 
