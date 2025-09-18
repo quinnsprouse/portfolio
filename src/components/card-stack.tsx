@@ -12,8 +12,17 @@ import {
 } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 
+interface CardImage {
+  src: string
+  ratio: number
+  srcSet: string
+  width: number
+  height: number
+  alt?: string
+}
+
 interface CardStackProps {
-  images?: { src: string; ratio: number }[]
+  images?: CardImage[]
   maxRotate?: number
 }
 
@@ -30,11 +39,39 @@ interface StackImageProps {
   containerSize: number
 }
 
-const defaultImages: { src: string; ratio: number }[] = [
-  { src: '/images/photo-JtrwPxnjdA37BdPP.webp', ratio: 4 / 3 },
-  { src: '/images/photo-Vh1X4nx6YrXLuwjA (1).webp', ratio: 4 / 3 },
-  { src: '/images/photo-59pYq5cxKfGmZ3Wi.webp', ratio: 3 / 4 },
-  { src: '/images/photo-CCrzUlQEJZtPr7iB.webp', ratio: 3 / 4 },
+const defaultImages: CardImage[] = [
+  {
+    src: '/images/optimized/photo-JtrwPxnjdA37BdPP-640.webp',
+    srcSet: '/images/optimized/photo-JtrwPxnjdA37BdPP-320.webp 320w, /images/optimized/photo-JtrwPxnjdA37BdPP-640.webp 640w',
+    ratio: 2 / 3,
+    width: 640,
+    height: 960,
+    alt: 'Outdoors landscape photograph',
+  },
+  {
+    src: '/images/optimized/photo-Vh1X4nx6YrXLuwjA (1)-640.webp',
+    srcSet: '/images/optimized/photo-Vh1X4nx6YrXLuwjA (1)-320.webp 320w, /images/optimized/photo-Vh1X4nx6YrXLuwjA (1)-640.webp 640w',
+    ratio: 3 / 2,
+    width: 640,
+    height: 427,
+    alt: 'River bank photograph',
+  },
+  {
+    src: '/images/optimized/photo-59pYq5cxKfGmZ3Wi-640.webp',
+    srcSet: '/images/optimized/photo-59pYq5cxKfGmZ3Wi-320.webp 320w, /images/optimized/photo-59pYq5cxKfGmZ3Wi-640.webp 640w',
+    ratio: 2 / 3,
+    width: 640,
+    height: 960,
+    alt: 'Portrait street photograph',
+  },
+  {
+    src: '/images/optimized/photo-CCrzUlQEJZtPr7iB-640.webp',
+    srcSet: '/images/optimized/photo-CCrzUlQEJZtPr7iB-320.webp 320w, /images/optimized/photo-CCrzUlQEJZtPr7iB-640.webp 640w',
+    ratio: 2 / 3,
+    width: 640,
+    height: 960,
+    alt: 'Portrait ocean photograph',
+  },
 ]
 
 export function CardStack({ images = defaultImages, maxRotate = 5 }: CardStackProps) {
@@ -91,6 +128,10 @@ export function CardStack({ images = defaultImages, maxRotate = 5 }: CardStackPr
 function StackImage({
   src,
   ratio,
+  srcSet,
+  width: intrinsicWidth,
+  height: intrinsicHeight,
+  alt,
   index,
   currentIndex,
   totalImages,
@@ -134,15 +175,15 @@ function StackImage({
   const portrait = ratio < 1
   const landscapeScale = portrait ? 1 : 0.86
   const base = containerSize * landscapeScale
-  const width = portrait ? base * ratio : base
-  const height = portrait ? base : base / ratio
+  const displayWidth = portrait ? base * ratio : base
+  const displayHeight = portrait ? base : base / ratio
 
   return (
     <motion.li
       className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[14px] bg-muted/40 shadow-[0_20px_45px_rgba(15,23,42,0.22)]"
       style={{
-        width,
-        height,
+        width: displayWidth,
+        height: displayHeight,
         zIndex,
         rotate,
         x,
@@ -156,12 +197,16 @@ function StackImage({
     >
       <img
         src={src}
-        alt="Selected work"
+        srcSet={srcSet}
+        sizes="(min-width: 1024px) 340px, (min-width: 768px) 280px, 60vw"
+        width={intrinsicWidth}
+        height={intrinsicHeight}
+        alt={alt ?? 'Selected work'}
         className="h-full w-full object-cover"
         draggable={false}
         loading={index === currentIndex ? 'eager' : 'lazy'}
         decoding="async"
-        sizes="(min-width: 768px) 340px, 60vw"
+        fetchPriority={index === currentIndex ? 'auto' : 'low'}
         onPointerDown={(event) => event.preventDefault()}
       />
     </motion.li>
