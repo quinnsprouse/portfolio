@@ -8,6 +8,7 @@ import {
   Scripts,
 } from '@tanstack/react-router'
 import appCss from '@/styles/app.css?url'
+import fontsCss from '@/styles/fonts.css?url'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -25,25 +26,8 @@ export const Route = createRootRoute({
     ],
     links: [
       {
-        rel: 'preconnect',
-        href: 'https://fonts.googleapis.com',
-      },
-      {
-        rel: 'preconnect',
-        href: 'https://fonts.gstatic.com',
-        crossOrigin: 'anonymous',
-      },
-      {
         rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Crimson+Pro:wght@300;400;500&display=swap',
-        media: 'print',
-        onLoad: "this.media='all'",
-      },
-      {
-        rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap',
-        media: 'print',
-        onLoad: "this.media='all'",
+        href: fontsCss,
       },
       {
         rel: 'stylesheet',
@@ -72,14 +56,6 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
     <html lang="en">
       <head>
         <HeadContent />
-        <noscript
-          dangerouslySetInnerHTML={{
-            __html: `
-              <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Crimson+Pro:wght@300;400;500&display=swap" />
-              <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" />
-            `,
-          }}
-        />
       </head>
       <body>
         {children}
