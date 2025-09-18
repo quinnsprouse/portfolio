@@ -31,10 +31,10 @@ interface StackImageProps {
 }
 
 const defaultImages: { src: string; ratio: number }[] = [
-  { src: '/images/photo-59pYq5cxKfGmZ3Wi.webp', ratio: 3 / 4 },
-  { src: '/images/photo-CCrzUlQEJZtPr7iB.webp', ratio: 3 / 4 },
   { src: '/images/photo-JtrwPxnjdA37BdPP.webp', ratio: 4 / 3 },
   { src: '/images/photo-Vh1X4nx6YrXLuwjA (1).webp', ratio: 4 / 3 },
+  { src: '/images/photo-59pYq5cxKfGmZ3Wi.webp', ratio: 3 / 4 },
+  { src: '/images/photo-CCrzUlQEJZtPr7iB.webp', ratio: 3 / 4 },
 ]
 
 export function CardStack({ images = defaultImages, maxRotate = 5 }: CardStackProps) {
