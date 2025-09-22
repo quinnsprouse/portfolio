@@ -3,6 +3,9 @@ import { createServerFn } from '@tanstack/react-start'
 import { ArrowUpRight } from 'lucide-react'
 
 import { CardStack } from '@/components/card-stack'
+import { GithubContributions } from '@/components/github-contributions'
+import { defaultContributionColors } from '@/lib/github'
+import type { ContributionCalendar, ContributionDay, ContributionWeek } from '@/lib/github'
 import { ComesInGoesOutUnderline } from '@/components/underline/comes-in-goes-out-underline'
 import { GoesOutComesInUnderline } from '@/components/underline/goes-out-comes-in-underline'
 
@@ -66,11 +69,266 @@ const getGitHubRepoInfo = createServerFn({ method: 'GET' })
     return repoData
   })
 
+const resolveGitHubToken = () => {
+  const env = typeof process !== 'undefined' ? process.env : undefined
+
+  return env?.GITHUB_TOKEN
+    ?? env?.VITE_GITHUB_TOKEN
+    ?? undefined
+}
+
+const normalizeContributionColors = (colors: string[]) =>
+  Array.from({ length: 5 }, (_, index) => colors[index] ?? defaultContributionColors[index])
+
+const MOBILE_WEEKS = 26
+
+const buildContributionCalendar = (
+  weeks: ContributionWeek[],
+  colors: string[],
+  totalContributions?: number
+): ContributionCalendar => {
+  const normalizedColors = normalizeContributionColors(colors)
+  const weekLabels: string[] = []
+  const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short' })
+  let lastMonthLabel = ''
+
+  weeks.forEach((week) => {
+    const firstActiveDay = week.find((day) => day !== null)
+
+    if (!firstActiveDay) {
+      weekLabels.push('')
+      return
+    }
+
+    const monthLabel = monthFormatter.format(new Date(firstActiveDay.date))
+
+    if (monthLabel === lastMonthLabel) {
+      weekLabels.push('')
+    } else {
+      weekLabels.push(monthLabel)
+      lastMonthLabel = monthLabel
+    }
+  })
+
+  return {
+    weeks,
+    weekLabels,
+    totalContributions,
+    levelColors: normalizedColors,
+    recentWeeks: weeks.slice(-MOBILE_WEEKS),
+    recentWeekLabels: weekLabels.slice(-MOBILE_WEEKS),
+  }
+}
+
+const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
+  .handler(async () => {
+    const username = 'quinnsprouse'
+    const token = resolveGitHubToken()
+
+    if (token) {
+      try {
+        const to = new Date()
+        const from = new Date(to)
+        from.setFullYear(from.getFullYear() - 1)
+
+        const response = await fetch('https://api.github.com/graphql', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'Portfolio-Website',
+          },
+          body: JSON.stringify({
+            query: `
+              query ($login: String!, $from: DateTime!, $to: DateTime!) {
+                user(login: $login) {
+                  contributionsCollection(from: $from, to: $to) {
+                    contributionCalendar {
+                      totalContributions
+                      colors
+                      weeks {
+                        contributionDays {
+                          date
+                          color
+                          contributionCount
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `,
+            variables: {
+              login: username,
+              from: from.toISOString(),
+              to: to.toISOString(),
+            },
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`GitHub GraphQL request failed: ${response.status}`)
+        }
+
+        const graphResult = await response.json() as {
+          data?: {
+            user?: {
+              contributionsCollection?: {
+                contributionCalendar?: {
+                  totalContributions?: number
+                  colors?: string[]
+                  weeks: {
+                    contributionDays: Array<{
+                      date: string
+                      color: string
+                      contributionCount: number
+                    }>
+                  }[]
+                }
+              }
+            }
+          }
+          errors?: Array<{ message: string }>
+        }
+
+        if (graphResult.errors?.length) {
+          const aggregated = graphResult.errors.map((err) => err.message).join('; ')
+          throw new Error(`GitHub GraphQL errors: ${aggregated}`)
+        }
+
+        const calendarData = graphResult.data?.user?.contributionsCollection?.contributionCalendar
+
+        if (calendarData) {
+          const colors = normalizeContributionColors(calendarData.colors ?? [])
+
+          const weeks: ContributionWeek[] = calendarData.weeks.map((week) =>
+            week.contributionDays.map((day) => {
+              const levelIndex = colors.indexOf(day.color)
+
+              return {
+                date: day.date,
+                count: day.contributionCount,
+                level: levelIndex >= 0 ? levelIndex : 0,
+                fill: day.color,
+              }
+            })
+          )
+
+          return buildContributionCalendar(weeks, colors, calendarData.totalContributions)
+        }
+      } catch (error) {
+        console.error('Failed to fetch GitHub contributions via GraphQL:', error)
+      }
+    }
+
+    try {
+      const response = await fetch('https://github.com/users/quinnsprouse/contributions', {
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`GitHub contributions request failed: ${response.status}`)
+      }
+
+      const html = await response.text()
+      const rectMatches = html.match(/<rect[^>]*>/g) ?? []
+
+      const dayMap = new Map<string, ContributionDay>()
+      const levelColors: Record<number, string> = {}
+
+      for (const rect of rectMatches) {
+        const attributes: Record<string, string> = {}
+        const attrRegex = /([a-zA-Z_:][a-zA-Z0-9_.:-]*)="([^"]*)"/g
+        let attrMatch: RegExpExecArray | null
+
+        while ((attrMatch = attrRegex.exec(rect)) !== null) {
+          const [, key, value] = attrMatch
+          attributes[key] = value
+        }
+
+        const date = attributes['data-date']
+
+        if (!date) {
+          continue
+        }
+
+        const count = Number.parseInt(attributes['data-count'] ?? '0', 10)
+        const level = Number.parseInt(attributes['data-level'] ?? '0', 10)
+        const fill = attributes['fill']
+
+        if (Number.isFinite(level) && fill && levelColors[level] === undefined) {
+          levelColors[level] = fill
+        }
+
+        dayMap.set(date, {
+          date,
+          count: Number.isFinite(count) ? count : 0,
+          level: Number.isFinite(level) ? level : 0,
+          fill,
+        })
+      }
+
+      if (dayMap.size === 0) {
+        throw new Error('No contribution data parsed from GitHub response')
+      }
+
+      const sortedDates = Array.from(dayMap.keys()).sort()
+      const firstDate = new Date(sortedDates[0]!)
+      const lastDate = new Date(sortedDates[sortedDates.length - 1]!)
+
+      const startDate = new Date(firstDate)
+      startDate.setDate(startDate.getDate() - startDate.getDay())
+
+      const endDate = new Date(lastDate)
+      endDate.setDate(endDate.getDate() + (6 - endDate.getDay()))
+
+      const weeks: ContributionWeek[] = []
+
+      for (
+        let cursor = new Date(startDate);
+        cursor <= endDate;
+        cursor.setDate(cursor.getDate() + 1)
+      ) {
+        const isoDate = cursor.toISOString().split('T')[0]!
+        const weekIndex = weeks.length - 1
+        const currentDay: ContributionDay | null = dayMap.get(isoDate) ?? null
+
+        if (weeks.length === 0 || weeks[weekIndex]?.length === 7) {
+          weeks.push([])
+        }
+
+        weeks[weeks.length - 1]!.push(currentDay)
+      }
+
+      const totalMatch = html.match(/([0-9,]+) contributions in the last year/i)
+      const totalContributions = totalMatch ? Number.parseInt(totalMatch[1]!.replace(/,/g, ''), 10) : undefined
+
+      const colors = normalizeContributionColors(
+        Array.from({ length: 5 }, (_, index) => levelColors[index] ?? defaultContributionColors[index])
+      )
+
+      return buildContributionCalendar(weeks, colors, totalContributions)
+    } catch (error) {
+      console.error('Failed to fetch GitHub contributions via HTML:', error)
+      return null
+    }
+  })
+
 export const Route = createFileRoute('/')({
   component: Home,
   loader: async () => {
-    const githubData = await getGitHubRepoInfo()
-    return { githubData }
+    const [githubData, githubCalendar] = await Promise.all([
+      getGitHubRepoInfo(),
+      getGitHubContributionCalendar(),
+    ])
+
+    return { githubData, githubCalendar }
   },
   head: () => ({
     meta: [
@@ -210,7 +468,7 @@ const experience: Experience[] = [
 ]
 
 function Home() {
-  const { githubData } = Route.useLoaderData()
+  const { githubData, githubCalendar } = Route.useLoaderData()
 
   // Structured data for SEO
   const structuredData = {
@@ -331,6 +589,18 @@ function Home() {
               )
             })}
           </div>
+        </section>
+
+        <section className="mb-16">
+          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>GitHub Activity</h2>
+          {githubCalendar ? (
+            <GithubContributions calendar={githubCalendar} />
+          ) : (
+            <p className="text-sm text-muted-foreground" style={{ fontFamily: 'Inter, sans-serif' }}>
+              Unable to load contributions right now. If you are developing locally, set a `GITHUB_TOKEN` environment
+              variable with access to the GitHub GraphQL API or check your network connection, then refresh.
+            </p>
+          )}
         </section>
 
         {/* Experience */}

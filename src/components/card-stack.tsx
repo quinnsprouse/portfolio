@@ -37,6 +37,7 @@ interface StackImageProps {
   minSpeed: number
   setNextImage: () => void
   containerSize: number
+  onInteract: () => void
 }
 
 const defaultImages: CardImage[] = [
@@ -78,6 +79,7 @@ export function CardStack({ images = defaultImages, maxRotate = 5 }: CardStackPr
   const [currentIndex, setCurrentIndex] = useState(0)
   const containerRef = useRef<HTMLUListElement>(null)
   const [size, setSize] = useState(360)
+  const [hasInteracted, setHasInteracted] = useState(false)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -98,29 +100,43 @@ export function CardStack({ images = defaultImages, maxRotate = 5 }: CardStackPr
 
   return (
     <div className="flex items-center justify-center">
-      <ul
-        ref={containerRef}
-        className="relative list-none p-0"
-        style={{
-          width: 'clamp(220px, 40vw, 340px)',
-          height: 'clamp(220px, 40vw, 340px)',
-        }}
-      >
-        {images.map((image, index) => (
-          <StackImage
-            key={image.src}
-            {...image}
-            index={index}
-            currentIndex={currentIndex}
-            totalImages={images.length}
-            maxRotate={maxRotate}
-            minDistance={size * 0.45}
-            minSpeed={110}
-            containerSize={size}
-            setNextImage={() => setCurrentIndex(wrap(0, images.length, currentIndex + 1))}
-          />
-        ))}
-      </ul>
+      <div className="flex flex-col items-center">
+        <ul
+          ref={containerRef}
+          className="relative list-none p-0"
+          style={{
+            width: 'clamp(220px, 40vw, 340px)',
+            height: 'clamp(220px, 40vw, 340px)',
+          }}
+        >
+          {images.map((image, index) => (
+            <StackImage
+              key={image.src}
+              {...image}
+              index={index}
+              currentIndex={currentIndex}
+              totalImages={images.length}
+              maxRotate={maxRotate}
+              minDistance={size * 0.45}
+              minSpeed={110}
+              containerSize={size}
+              setNextImage={() => setCurrentIndex(wrap(0, images.length, currentIndex + 1))}
+              onInteract={() => setHasInteracted(true)}
+            />
+          ))}
+        </ul>
+
+        <div className="mt-4 flex h-4 items-center justify-center">
+          <span
+            className={`text-[0.625rem] font-medium uppercase tracking-[0.32em] text-muted-foreground transition-opacity duration-200 ${
+              hasInteracted ? 'opacity-0' : 'opacity-80'
+            }`}
+            aria-hidden={hasInteracted}
+          >
+            Drag a card
+          </span>
+        </div>
+      </div>
     </div>
   )
 }
@@ -140,6 +156,7 @@ function StackImage({
   minDistance,
   minSpeed,
   containerSize,
+  onInteract,
 }: StackImageProps) {
   const baseRotation = mix(0, maxRotate, Math.sin(index))
   const x = useMotionValue(0)
@@ -193,6 +210,16 @@ function StackImage({
       transition={{ type: 'spring', stiffness: 600, damping: 30 }}
       drag={index === currentIndex ? 'x' : false}
       onDragEnd={handleDragEnd}
+      onDragStart={() => {
+        if (index === currentIndex) {
+          onInteract()
+        }
+      }}
+      onPointerDown={() => {
+        if (index === currentIndex) {
+          onInteract()
+        }
+      }}
       whileTap={index === currentIndex ? { scale: 0.96 } : undefined}
     >
       <img
@@ -204,9 +231,9 @@ function StackImage({
         alt={alt ?? 'Selected work'}
         className="h-full w-full object-cover"
         draggable={false}
-        loading={index === currentIndex ? 'eager' : 'lazy'}
+        loading={zIndex >= 1 ? 'eager' : 'lazy'}
         decoding="async"
-        fetchPriority={index === currentIndex ? 'auto' : 'low'}
+        fetchPriority={zIndex >= 1 ? 'high' : 'low'}
         onPointerDown={(event) => event.preventDefault()}
       />
     </motion.li>
