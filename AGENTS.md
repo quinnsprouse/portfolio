@@ -1,125 +1,16 @@
-# AI Assistant Guide for TanStack Start + Shadcn/ui Project
+# Repository Guidelines
 
-## Project Overview
-This is a modern full-stack React application using TanStack Start, Shadcn/ui components, and Tailwind CSS v4.
+## Project Architecture & Directories
+TanStack Start powers routing in `src/routes`, where each file exports `createFileRoute` with co-located loaders via `createServerFn`. Shared UI primitives live in `src/components/ui`, while higher-level widgets sit beside feature code under `src/components`. Markdown-driven content (blog posts, metadata) resides in `src/content`, parsed through helpers in `src/lib`. Global styles, Tailwind setup, and CSS variables are defined in `src/styles/app.css`. Generated assets such as `src/routeTree.gen.ts` should be treated as read-only.
 
-## Tech Stack
-- **Framework**: TanStack Start (Full-stack React with SSR)
-- **UI Components**: Shadcn/ui (Radix UI + Tailwind)
-- **Styling**: Tailwind CSS v4 with OKLCH colors
-- **Language**: TypeScript
-- **Build Tool**: Vite
-- **React Version**: 19
+## Rendering & Data Flow Patterns
+Routes hydrate on the server first, then seamlessly hand off to the client. Fetch external data inside `createServerFn` handlers to keep secrets server-side and return serializable payloads. For client-side revalidation, call `router.invalidate()` or leverage loader dependencies. Keep long-running effects out of render and favor derived data selectors.
 
-## Project Structure
-```
-src/
-├── routes/          # TanStack Start file-based routes
-├── components/      # React components
-│   └── ui/         # Shadcn/ui components
-├── lib/            # Utility functions (e.g., cn() for classnames)
-├── styles/         # Global styles and Tailwind config
-│   └── app.css    # Main CSS file with theme variables
-├── router.tsx      # Router configuration
-└── routeTree.gen.ts # Auto-generated route tree (DO NOT EDIT)
-```
+## UI System & Styling Conventions
+Use Shadcn/ui components as the base layer, extending them with Tailwind utility classes. For conditional styling, compose class strings with the `cn` helper from `@/lib/utils`. Typography pairings are baked into components; prefer prop-driven variants over ad-hoc classes. Respect the design tokens exposed as OKLCH CSS variables (`bg-background`, `text-muted-foreground`, etc.) to maintain light/dark parity.
 
-## Key Commands
-- `npm run dev` - Start development server on port 3000
-- `npm run build` - Build for production
-- `npx shadcn@canary add [component]` - Add new Shadcn components
+## Tooling & Development Commands
+Run `npm run dev` for the Vite dev server with SSR and hot reloading at http://localhost:3000. `npm run build` generates the production bundle, while `npm run start` serves that build for verification. The repo currently has no automated tests—additions should introduce Vitest + React Testing Library and update the `npm test` script before integrating with CI.
 
-## Important Files
-- `vite.config.ts` - Vite and TanStack Start configuration
-- `tsconfig.json` - TypeScript configuration with path aliases
-- `components.json` - Shadcn/ui configuration
-- `src/styles/app.css` - Theme colors and Tailwind imports
-
-## Routing
-Routes are file-based in `src/routes/`. Each route file exports a Route object:
-```tsx
-export const Route = createFileRoute('/path')({
-  component: ComponentName,
-  loader: async () => { /* data fetching */ }
-})
-```
-
-## Server Functions
-Use `createServerFn` for server-side logic:
-```tsx
-const myServerFn = createServerFn({ method: 'GET' })
-  .handler(async () => {
-    // Server-only code
-    return data
-  })
-```
-
-## Styling Guidelines
-1. Use Tailwind utility classes
-2. Use `cn()` helper from `@/lib/utils` for conditional classes
-3. Theme colors are CSS variables (e.g., `bg-background`, `text-foreground`)
-4. Dark mode: Add `dark` class to html element
-5. OKLCH color space for better color consistency
-
-## Component Usage
-```tsx
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-```
-
-## Best Practices
-1. Keep components in `src/components/`
-2. Use TypeScript for all files
-3. Follow existing code style and conventions
-4. Use server functions for database/API calls
-5. Leverage TanStack Router's type-safe navigation
-6. Use Shadcn/ui components instead of building from scratch
-
-## Common Tasks
-
-### Add a new route
-Create a new file in `src/routes/`:
-```tsx
-// src/routes/about.tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/about')({
-  component: AboutPage,
-})
-
-function AboutPage() {
-  return <div>About</div>
-}
-```
-
-### Add a Shadcn component
-```bash
-npx shadcn@canary add dialog
-```
-
-### Create a server function
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getData = createServerFn({ method: 'GET' })
-  .handler(async () => {
-    // This runs on the server
-    return { data: 'example' }
-  })
-```
-
-### Use in component
-```tsx
-const data = await getData()
-```
-
-## Troubleshooting
-- Route tree generation happens automatically on dev server start
-- If styles aren't applying, check Tailwind content configuration
-- Server functions must be called with `await` or `.then()`
-- Use `router.invalidate()` to refetch route data
-
-## Environment
-- Node.js 18+ required
-- Uses ES modules (`"type": "module"` in package.json)
-- Development runs on http://localhost:3000
+## Content & Asset Workflow
+Blog entries use Markdown with frontmatter in `src/content`; keep slugs in sync with filenames (`blog.$slug.tsx`). Optimized images ship from `public/` or are imported directly for bundling; run additions through image compression to protect Core Web Vitals. Environment variables such as `GITHUB_TOKEN` or `VITE_GITHUB_TOKEN` enable GitHub API features—define them locally without committing secrets.
