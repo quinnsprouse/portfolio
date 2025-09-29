@@ -91,6 +91,22 @@ export const Route = createFileRoute('/blog/$slug')({
         content: `https://quinnsprouse.com/blog/${params.slug}`
       },
       {
+        property: 'og:image',
+        content: 'https://quinnsprouse.com/og-image.png'
+      },
+      {
+        property: 'og:image:width',
+        content: '1200'
+      },
+      {
+        property: 'og:image:height',
+        content: '630'
+      },
+      {
+        property: 'og:image:alt',
+        content: loaderData?.post.title || 'Blog Post'
+      },
+      {
         property: 'article:author',
         content: 'Quinn Sprouse'
       },
@@ -109,6 +125,10 @@ export const Route = createFileRoute('/blog/$slug')({
       {
         name: 'twitter:description',
         content: loaderData?.post.description || 'Blog post by Quinn Sprouse'
+      },
+      {
+        name: 'twitter:image',
+        content: 'https://quinnsprouse.com/og-image.png'
       },
       {
         name: 'robots',
