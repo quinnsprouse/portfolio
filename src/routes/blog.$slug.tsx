@@ -251,6 +251,13 @@ function BlogPost() {
                   {children}
                 </a>
               ),
+              img: ({ src, alt }) => (
+                <img
+                  src={src}
+                  alt={alt}
+                  className="w-full h-auto rounded-lg my-8"
+                />
+              ),
             }}
           >
             {post.content}
