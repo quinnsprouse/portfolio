@@ -1,14 +1,23 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import type { CSSProperties } from 'react'
 
 import type { ContributionCalendar, ContributionWeek } from '@/lib/github'
+
+interface TooltipData {
+  contributions: number
+  date: string
+  dayName: string
+  x: number
+  y: number
+}
 
 interface GithubContributionsProps {
   calendar: ContributionCalendar
 }
 
+// GitHub displays Sunday-Saturday (Sun at top, Sat at bottom)
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const visibleDayLabels = new Set([1, 3, 5])
+const visibleDayLabels = new Set([1, 3, 5]) // Mon, Wed, Fri
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -27,6 +36,7 @@ const GRID_GAP = 4
 
 export const GithubContributions = memo(function GithubContributions({ calendar }: GithubContributionsProps) {
   const { weeks, weekLabels, recentWeeks, recentWeekLabels, totalContributions, levelColors } = calendar
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null)
 
   if (!weeks.length) {
     return null
@@ -50,33 +60,66 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
     rowGap: `${GRID_GAP}px`,
   }
 
-  const renderWeek = (week: ContributionWeek, weekIndex: number) => (
-    <div key={`week-${weekIndex}`} className="grid" style={weekRowStyle}>
-      {Array.from({ length: 7 }).map((_, dayIndex) => {
-        const day = week[dayIndex] ?? null
-        const background = day
-          ? day.fill ?? levelColors[day.level] ?? levelColors[0] ?? '#ebedf0'
-          : levelColors[0] ?? '#ebedf0'
-        const contributions = day?.count ?? 0
-        const title = day
-          ? `${contributions} contribution${contributions === 1 ? '' : 's'} on ${dateFormatter.format(new Date(day.date))}`
-          : 'No contributions'
+  const columnStyle = buildColumnStyle(weeks.length)
 
-        return (
-          <span
-            key={`day-${weekIndex}-${dayIndex}`}
-            className="aspect-square w-full rounded-[3px] border border-border/20"
-            style={{ backgroundColor: background }}
-            title={title}
-            aria-label={title}
-          />
-        )
-      })}
-    </div>
-  )
+  // Render a single day cell
+  const renderDayCell = (day: ContributionDay | null, dayOfWeek: number, weekIndex: number) => {
+    if (!day) {
+      // Render invisible placeholder for missing days
+      return (
+        <span
+          key={`day-${dayOfWeek}-${weekIndex}-empty`}
+          className="aspect-square w-full"
+        />
+      )
+    }
+
+    const background = day.fill ?? levelColors[day.level] ?? levelColors[0] ?? '#ebedf0'
+    const contributions = day.count ?? 0
+
+    // Format data for tooltip
+    const date = new Date(day.date)
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
+    const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+    const handleMouseEnter = (e: React.MouseEvent<HTMLSpanElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect()
+      setTooltip({
+        contributions,
+        date: formattedDate,
+        dayName,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 8
+      })
+    }
+
+    const handleMouseLeave = () => {
+      setTooltip(null)
+    }
+
+    return (
+      <span
+        key={`day-${dayOfWeek}-${weekIndex}`}
+        className="aspect-square w-full rounded-[3px] border border-border/20 hover:border-border/40 transition-colors cursor-default"
+        style={{ backgroundColor: background }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        aria-label={`${contributions} contribution${contributions === 1 ? '' : 's'} on ${formattedDate}`}
+      />
+    )
+  }
+
+  // Render a row for a specific day of the week (0=Sun, 1=Mon, ..., 6=Sat)
+  const renderDayRow = (dayOfWeek: number, calendarWeeks: ContributionWeek[]) => {
+    return (
+      <div key={`day-${dayOfWeek}`} className="grid" style={{...columnStyle, rowGap: `${GRID_GAP}px`}}>
+        {calendarWeeks.map((week, weekIndex) => renderDayCell(week[dayOfWeek] ?? null, dayOfWeek, weekIndex))}
+      </div>
+    )
+  }
 
   const renderCalendar = (calendarWeeks: ContributionWeek[], labels: string[], variants: { showWeekdayColumn: boolean }) => {
-    const columnStyle = buildColumnStyle(calendarWeeks.length)
+    const calendarColumnStyle = buildColumnStyle(calendarWeeks.length)
 
     return (
       <div className={variants.showWeekdayColumn ? 'grid md:grid-cols-[auto_1fr] md:gap-4' : ''}>
@@ -93,7 +136,7 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
         <div className="flex flex-col gap-3">
           <div
             className="grid text-[9px] uppercase tracking-wide text-muted-foreground sm:text-[10px]"
-            style={columnStyle}
+            style={calendarColumnStyle}
             aria-hidden
           >
             {labels.map((label, index) => (
@@ -102,8 +145,9 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
               </span>
             ))}
           </div>
-          <div className="grid" style={{ ...columnStyle, rowGap: `${GRID_GAP}px` }}>
-            {calendarWeeks.map(renderWeek)}
+          <div className="grid" style={{ ...weekRowStyle, rowGap: `${GRID_GAP}px` }}>
+            {/* Render 7 rows, one for each day of the week */}
+            {Array.from({ length: 7 }).map((_, dayOfWeek) => renderDayRow(dayOfWeek, calendarWeeks))}
           </div>
         </div>
       </div>
@@ -114,7 +158,7 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
   const mobileLabels = recentWeekLabels?.length ? recentWeekLabels : weekLabels.slice(-MOBILE_WEEK_LIMIT)
 
   return (
-    <div className="rounded-xl border border-border/50 bg-card/60 p-4 md:p-5">
+    <div className="rounded-xl border border-border/50 bg-card/60 p-4 md:p-5 relative">
       <div className="mb-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-medium sm:text-base" style={{ fontFamily: 'Inter, sans-serif' }}>
           {typeof totalContributions === 'number'
@@ -152,6 +196,29 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
         </div>
         <span>More</span>
       </div>
+
+      {/* Custom Tooltip */}
+      {tooltip && (
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={{
+            left: `${tooltip.x}px`,
+            top: `${tooltip.y}px`,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <div className="bg-foreground text-background px-3 py-2 rounded-md shadow-lg text-xs font-mono whitespace-nowrap">
+            <div className="font-semibold">
+              {tooltip.contributions === 0 ? 'No contributions' :
+               tooltip.contributions === 1 ? '1 contribution' :
+               `${tooltip.contributions} contributions`}
+            </div>
+            <div className="text-[10px] opacity-80 mt-0.5">
+              {tooltip.dayName}, {tooltip.date}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 })

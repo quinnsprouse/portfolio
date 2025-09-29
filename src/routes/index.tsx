@@ -90,9 +90,10 @@ const buildContributionCalendar = (
   const normalizedColors = normalizeContributionColors(colors)
   const weekLabels: string[] = []
   const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short' })
-  let lastMonthLabel = ''
+  let lastMonth = -1
+  let lastYear = -1
 
-  weeks.forEach((week) => {
+  weeks.forEach((week, weekIndex) => {
     const firstActiveDay = week.find((day) => day !== null)
 
     if (!firstActiveDay) {
@@ -100,13 +101,30 @@ const buildContributionCalendar = (
       return
     }
 
-    const monthLabel = monthFormatter.format(new Date(firstActiveDay.date))
+    const date = new Date(firstActiveDay.date)
+    const currentMonth = date.getMonth()
+    const currentYear = date.getFullYear()
 
-    if (monthLabel === lastMonthLabel) {
-      weekLabels.push('')
+    // Show label only on first occurrence of a new month
+    if (currentMonth !== lastMonth || currentYear !== lastYear) {
+      // Check if the first day of this week is early enough in the month (day 1-14)
+      // GitHub only shows month labels when there's enough space
+      const firstDayOfWeek = new Date(firstActiveDay.date)
+      const dayOfMonth = firstDayOfWeek.getDate()
+
+      // Skip label for the very first week if it's a partial week (< 7 days)
+      // This prevents showing labels when the year starts mid-week
+      if (weekIndex === 0 && week.length < 7) {
+        weekLabels.push('')
+      } else if (dayOfMonth <= 14) {
+        weekLabels.push(monthFormatter.format(date))
+        lastMonth = currentMonth
+        lastYear = currentYear
+      } else {
+        weekLabels.push('')
+      }
     } else {
-      weekLabels.push(monthLabel)
-      lastMonthLabel = monthLabel
+      weekLabels.push('')
     }
   })
 
@@ -127,9 +145,14 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
 
     if (token) {
       try {
+        // Set 'to' to end of today
         const to = new Date()
+        to.setHours(23, 59, 59, 999)
+
+        // Set 'from' to exactly 365 days ago from today
         const from = new Date(to)
-        from.setFullYear(from.getFullYear() - 1)
+        from.setDate(from.getDate() - 364) // 364 days ago + today = 365 days total
+        from.setHours(0, 0, 0, 0)
 
         const response = await fetch('https://api.github.com/graphql', {
           method: 'POST',
@@ -200,19 +223,79 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
 
         if (calendarData) {
           const colors = normalizeContributionColors(calendarData.colors ?? [])
+          const today = new Date()
+          today.setHours(23, 59, 59, 999)
 
-          const weeks: ContributionWeek[] = calendarData.weeks.map((week) =>
-            week.contributionDays.map((day) => {
+          // Create a map of all contribution days
+          const dayMap = new Map<string, ContributionDay>()
+
+          for (const week of calendarData.weeks) {
+            for (const day of week.contributionDays) {
+              const dayDate = new Date(day.date)
+              dayDate.setHours(0, 0, 0, 0)
+
+              // Skip future dates
+              if (dayDate > today) {
+                continue
+              }
+
               const levelIndex = colors.indexOf(day.color)
-
-              return {
+              dayMap.set(day.date, {
                 date: day.date,
                 count: day.contributionCount,
                 level: levelIndex >= 0 ? levelIndex : 0,
                 fill: day.color,
-              }
-            })
-          )
+              })
+            }
+          }
+
+          // Find the date range
+          const sortedDates = Array.from(dayMap.keys()).sort()
+          if (sortedDates.length === 0) {
+            return null
+          }
+
+          const firstDate = new Date(sortedDates[0]!)
+          const lastDate = new Date(sortedDates[sortedDates.length - 1]!)
+
+          // Cap at today
+          const effectiveLastDate = lastDate > today ? today : lastDate
+
+          // Find the Sunday of the week containing firstDate
+          // getDay() returns 0 for Sunday, 1 for Monday, etc.
+          const startDate = new Date(firstDate)
+          const dayOfWeek = startDate.getDay()
+          startDate.setDate(startDate.getDate() - dayOfWeek) // Go back to Sunday
+
+          // Build weeks: each week is [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+          const weeks: ContributionWeek[] = []
+          let currentWeek: ContributionWeek = []
+
+          for (
+            let cursor = new Date(startDate);
+            cursor <= effectiveLastDate;
+            cursor.setDate(cursor.getDate() + 1)
+          ) {
+            const isoDate = cursor.toISOString().split('T')[0]!
+            const contributionDay = dayMap.get(isoDate) ?? null
+
+            currentWeek.push(contributionDay)
+
+            // If we've filled 7 days (Sun-Sat), start a new week
+            if (currentWeek.length === 7) {
+              weeks.push(currentWeek)
+              currentWeek = []
+            }
+          }
+
+          // Add any remaining partial week
+          if (currentWeek.length > 0) {
+            // Pad with nulls to make it 7 days
+            while (currentWeek.length < 7) {
+              currentWeek.push(null)
+            }
+            weeks.push(currentWeek)
+          }
 
           return buildContributionCalendar(weeks, colors, calendarData.totalContributions)
         }
@@ -279,31 +362,52 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
       }
 
       const sortedDates = Array.from(dayMap.keys()).sort()
+      if (sortedDates.length === 0) {
+        throw new Error('No contribution data parsed from GitHub response')
+      }
+
       const firstDate = new Date(sortedDates[0]!)
       const lastDate = new Date(sortedDates[sortedDates.length - 1]!)
 
+      // Don't show future dates - cap at today
+      const today = new Date()
+      today.setHours(23, 59, 59, 999)
+      const effectiveLastDate = lastDate > today ? today : lastDate
+
+      // Find the Sunday of the week containing firstDate
+      // getDay() returns 0 for Sunday, 1 for Monday, etc.
       const startDate = new Date(firstDate)
-      startDate.setDate(startDate.getDate() - startDate.getDay())
+      const dayOfWeek = startDate.getDay()
+      startDate.setDate(startDate.getDate() - dayOfWeek) // Go back to Sunday
 
-      const endDate = new Date(lastDate)
-      endDate.setDate(endDate.getDate() + (6 - endDate.getDay()))
-
+      // Build weeks: each week is [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
       const weeks: ContributionWeek[] = []
+      let currentWeek: ContributionWeek = []
 
       for (
         let cursor = new Date(startDate);
-        cursor <= endDate;
+        cursor <= effectiveLastDate;
         cursor.setDate(cursor.getDate() + 1)
       ) {
         const isoDate = cursor.toISOString().split('T')[0]!
-        const weekIndex = weeks.length - 1
-        const currentDay: ContributionDay | null = dayMap.get(isoDate) ?? null
+        const contributionDay = dayMap.get(isoDate) ?? null
 
-        if (weeks.length === 0 || weeks[weekIndex]?.length === 7) {
-          weeks.push([])
+        currentWeek.push(contributionDay)
+
+        // If we've filled 7 days (Sun-Sat), start a new week
+        if (currentWeek.length === 7) {
+          weeks.push(currentWeek)
+          currentWeek = []
         }
+      }
 
-        weeks[weeks.length - 1]!.push(currentDay)
+      // Add any remaining partial week
+      if (currentWeek.length > 0) {
+        // Pad with nulls to make it 7 days
+        while (currentWeek.length < 7) {
+          currentWeek.push(null)
+        }
+        weeks.push(currentWeek)
       }
 
       const totalMatch = html.match(/([0-9,]+) contributions in the last year/i)

@@ -5,6 +5,7 @@ export interface ContributionDay {
   fill?: string
 }
 
+// Each week is an array of 7 days: [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
 export type ContributionWeek = (ContributionDay | null)[]
 
 export interface ContributionCalendar {
