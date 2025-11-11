@@ -98,7 +98,11 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
           rel="preload"
           href={fontsCss}
           as="style"
-          onLoad="this.onload=null;this.rel='stylesheet'"
+          onLoad={(event) => {
+            const target = event.currentTarget as HTMLLinkElement
+            target.onload = null
+            target.rel = 'stylesheet'
+          }}
         />
         <noscript>
           <link rel="stylesheet" href={fontsCss} />

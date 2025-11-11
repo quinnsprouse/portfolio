@@ -1,55 +1,22 @@
 /// <reference types="vite/client" />
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import matter from 'gray-matter'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-
-interface BlogPostData {
-  title: string
-  description: string
-  date: string
-  readingTime: string
-  content: string
-}
+import { MDXProvider } from '@mdx-js/react'
+import type { ReactNode } from 'react'
+import type { MDXComponents } from 'mdx/types'
+import { blogComponentsBySlug, blogFrontmatterBySlug, type BlogFrontmatter } from '@/lib/blog-posts'
 
 const getBlogPost = createServerFn({ method: 'GET' })
-  .validator((slug: string) => slug)
+  .inputValidator((slug: string) => slug)
   .handler(async ({ data: slug }) => {
-    const modules = import.meta.glob<string>(
-      '../content/blog/*.{md,mdx}',
-      {
-        query: '?raw',
-        import: 'default'
-      }
-    )
+    const metadata = blogFrontmatterBySlug[slug]
 
-    const entry = Object.entries(modules).find(([filePath]) =>
-      filePath.endsWith(`${slug}.mdx`) || filePath.endsWith(`${slug}.md`)
-    )
-
-    if (!entry) {
+    if (!metadata) {
       console.error(`Blog post not found for slug: ${slug}`)
       throw new Error('Post not found')
     }
 
-    const [filePath, loadContent] = entry
-
-    try {
-      const file = await loadContent()
-      const { data, content } = matter(file)
-
-      return {
-        title: data.title || 'Untitled',
-        description: data.description || '',
-        date: data.date || '',
-        readingTime: data.readingTime || '5 min',
-        content
-      } as BlogPostData
-    } catch (error) {
-      console.error(`Error loading blog post ${filePath}:`, error)
-      throw new Error('Post not found')
-    }
+    return metadata
   })
 
 export const Route = createFileRoute('/blog/$slug')({
@@ -146,6 +113,20 @@ export const Route = createFileRoute('/blog/$slug')({
 
 function BlogPost() {
   const { post } = Route.useLoaderData()
+  const { slug } = Route.useParams()
+
+  const PostContent = slug ? blogComponentsBySlug[slug] : undefined
+
+  const parsedDate = post.date ? new Date(post.date) : null
+  const validDate = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : null
+  const dateLabel = validDate
+    ? validDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+    : null
+  const isoPublishedDate = validDate?.toISOString() ?? undefined
 
   // Structured data for SEO
   const structuredData = {
@@ -153,8 +134,8 @@ function BlogPost() {
     "@type": "BlogPosting",
     "headline": post.title,
     "description": post.description,
-    "datePublished": post.date,
-    "dateModified": post.date,
+    "datePublished": isoPublishedDate,
+    "dateModified": isoPublishedDate,
     "author": {
       "@type": "Person",
       "name": "Quinn Sprouse",
@@ -169,6 +150,99 @@ function BlogPost() {
       "@type": "WebPage",
       "@id": `https://quinnsprouse.com/blog/${post.title.toLowerCase().replace(/\s+/g, '-')}`
     }
+  }
+
+  const markdownComponents: MDXComponents = {
+    h1: ({ children }) => (
+      <h1 className="text-3xl font-light mt-12 mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>
+        {children}
+      </h1>
+    ),
+    h2: ({ children }) => (
+      <h2 className="text-2xl font-light mt-10 mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>
+        {children}
+      </h2>
+    ),
+    h3: ({ children }) => (
+      <h3 className="text-xl font-light mt-8 mb-3" style={{ fontFamily: 'Crimson Pro, serif' }}>
+        {children}
+      </h3>
+    ),
+    p: ({ children }) => (
+      <p className="text-base leading-[1.8] mb-6" style={{ fontFamily: 'Crimson Pro, serif', fontSize: '19px' }}>
+        {children}
+      </p>
+    ),
+    ul: ({ children }) => (
+      <ul className="list-disc list-outside ml-6 space-y-2 mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>
+        {children}
+      </ul>
+    ),
+    ol: ({ children }) => (
+      <ol className="list-decimal list-outside ml-6 space-y-2 mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>
+        {children}
+      </ol>
+    ),
+    li: ({ children }) => (
+      <li className="text-base leading-[1.8]" style={{ fontSize: '19px' }}>
+        {children}
+      </li>
+    ),
+    code: ({ inline, children }: { inline?: boolean; children?: ReactNode }) => {
+      if (inline) {
+        return (
+          <code className="px-1 py-0.5 bg-muted/50 rounded text-xs font-mono">
+            {children}
+          </code>
+        )
+      }
+      return (
+        <pre className="bg-muted/50 p-3 rounded overflow-x-auto mb-4">
+          <code className="text-xs font-mono">{children}</code>
+        </pre>
+      )
+    },
+    blockquote: ({ children }) => (
+      <blockquote className="border-l-3 border-muted-foreground/30 pl-6 italic mb-6" style={{ fontFamily: 'Crimson Pro, serif', fontSize: '19px', fontStyle: 'italic' }}>
+        {children}
+      </blockquote>
+    ),
+    a: ({ href, children }) => (
+      <a
+        href={href}
+        className="text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+        target={href?.startsWith('http') ? '_blank' : undefined}
+        rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+      >
+        {children}
+      </a>
+    ),
+    img: ({ src, alt }) => (
+      <img
+        src={src ?? ''}
+        alt={alt ?? ''}
+        className="w-full h-auto rounded-lg my-8"
+      />
+    ),
+  }
+
+  if (!PostContent) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="mx-auto max-w-2xl px-6 py-24 text-center">
+          <p className="text-sm font-mono text-muted-foreground mb-4">404</p>
+          <h1 className="text-3xl font-light mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>
+            Post not found
+          </h1>
+          <Link
+            to="/blog"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors font-mono"
+          >
+            ← Back to blog
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -190,13 +264,11 @@ function BlogPost() {
             {post.title}
           </h1>
           <div className="flex items-center gap-4 text-sm text-muted-foreground font-mono">
-            <time dateTime={post.date}>
-              {new Date(post.date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </time>
+            {dateLabel ? (
+              <time dateTime={post.date}>{dateLabel}</time>
+            ) : (
+              <span>Coming soon</span>
+            )}
             <span>·</span>
             <span>{post.readingTime} read</span>
           </div>
@@ -204,84 +276,9 @@ function BlogPost() {
 
         {/* Content */}
         <article className="prose prose-lg prose-neutral dark:prose-invert max-w-none">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              h1: ({ children }) => (
-                <h1 className="text-3xl font-light mt-12 mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                  {children}
-                </h1>
-              ),
-              h2: ({ children }) => (
-                <h2 className="text-2xl font-light mt-10 mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                  {children}
-                </h2>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-xl font-light mt-8 mb-3" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                  {children}
-                </h3>
-              ),
-              p: ({ children }) => (
-                <p className="text-base leading-[1.8] mb-6" style={{ fontFamily: 'Crimson Pro, serif', fontSize: '19px' }}>
-                  {children}
-                </p>
-              ),
-              ul: ({ children }) => (
-                <ul className="list-disc list-outside ml-6 space-y-2 mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                  {children}
-                </ul>
-              ),
-              ol: ({ children }) => (
-                <ol className="list-decimal list-outside ml-6 space-y-2 mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>
-                  {children}
-                </ol>
-              ),
-              li: ({ children }) => (
-                <li className="text-base leading-[1.8]" style={{ fontSize: '19px' }}>
-                  {children}
-                </li>
-              ),
-              code: ({ inline, children }) => {
-                if (inline) {
-                  return (
-                    <code className="px-1 py-0.5 bg-muted/50 rounded text-xs font-mono">
-                      {children}
-                    </code>
-                  )
-                }
-                return (
-                  <pre className="bg-muted/50 p-3 rounded overflow-x-auto mb-4">
-                    <code className="text-xs font-mono">{children}</code>
-                  </pre>
-                )
-              },
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-3 border-muted-foreground/30 pl-6 italic mb-6" style={{ fontFamily: 'Crimson Pro, serif', fontSize: '19px', fontStyle: 'italic' }}>
-                  {children}
-                </blockquote>
-              ),
-              a: ({ href, children }) => (
-                <a
-                  href={href}
-                  className="text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-                  target={href?.startsWith('http') ? '_blank' : undefined}
-                  rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
-                >
-                  {children}
-                </a>
-              ),
-              img: ({ src, alt }) => (
-                <img
-                  src={src}
-                  alt={alt}
-                  className="w-full h-auto rounded-lg my-8"
-                />
-              ),
-            }}
-          >
-            {post.content}
-          </ReactMarkdown>
+          <MDXProvider components={markdownComponents}>
+            <PostContent />
+          </MDXProvider>
         </article>
       </div>
     </div>

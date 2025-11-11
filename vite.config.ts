@@ -2,13 +2,19 @@ import { defineConfig } from 'vite'
 import tsConfigPaths from 'vite-tsconfig-paths'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import viteCompression from 'vite-plugin-compression'
+import mdx from '@mdx-js/rollup'
+import remarkGfm from 'remark-gfm'
+import remarkFrontmatter from 'remark-frontmatter'
+import remarkMdxFrontmatter from 'remark-mdx-frontmatter'
 
 export default defineConfig({
   server: {
     port: 3000,
   },
   build: {
+    outDir: '.output',
     // Enable minification and compression
     minify: 'terser',
     terserOptions: {
@@ -21,11 +27,20 @@ export default defineConfig({
     assetsInlineLimit: 4096,
   },
   plugins: [
+    {
+      enforce: 'pre',
+      ...mdx({
+        mdExtensions: ['.md', '.mdx'],
+        remarkPlugins: [remarkFrontmatter, [remarkMdxFrontmatter, { name: 'frontmatter' }], remarkGfm],
+        providerImportSource: '@mdx-js/react',
+      }),
+    },
     tsConfigPaths(),
-    tanstackStart({
-      customViteReactPlugin: true,
+    tanstackStart(),
+    viteReact({
+      include: /\.(mdx|md|jsx|js|tsx|ts)$/,
     }),
-    viteReact(),
+    tailwindcss(),
     // Enable gzip compression
     viteCompression({
       algorithm: 'gzip',

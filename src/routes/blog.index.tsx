@@ -1,55 +1,9 @@
 /// <reference types="vite/client" />
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import matter from 'gray-matter'
+import { blogFrontmatterList } from '@/lib/blog-posts'
 
-interface BlogPost {
-  slug: string
-  title: string
-  description: string
-  date: string
-  readingTime: string
-}
-
-const getBlogPosts = createServerFn({ method: 'GET' })
-  .handler(async () => {
-    const modules = import.meta.glob<string>(
-      '../content/blog/*.{md,mdx}',
-      {
-        query: '?raw',
-        import: 'default'
-      }
-    )
-
-    const posts = await Promise.all(
-      Object.entries(modules).map(async ([filePath, loadContent]) => {
-        try {
-          const file = await loadContent()
-          const { data } = matter(file)
-          const slug = filePath.split('/').pop()?.replace(/\.(mdx|md)$/i, '')
-
-          if (!slug) {
-            return null
-          }
-
-          return {
-            slug,
-            title: data.title || 'Untitled',
-            description: data.description || '',
-            date: data.date || '',
-            readingTime: data.readingTime || '5 min'
-          } as BlogPost
-        } catch (error) {
-          console.error(`Error loading blog post metadata from ${filePath}:`, error)
-          return null
-        }
-      })
-    )
-
-    return posts
-      .filter((post): post is BlogPost => post !== null)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  })
+const getBlogPosts = createServerFn({ method: 'GET' }).handler(async () => blogFrontmatterList)
 
 export const Route = createFileRoute('/blog/')({
   component: Blog,
@@ -134,6 +88,16 @@ export const Route = createFileRoute('/blog/')({
 
 function Blog() {
   const { posts } = Route.useLoaderData()
+  const formatDateLabel = (value: string) => {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -176,11 +140,7 @@ function Blog() {
                     </div>
                     <div className="flex items-center gap-3 ml-4">
                       <span className="text-sm text-muted-foreground font-mono">
-                        {new Date(post.date).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
+                        {formatDateLabel(post.date) ?? 'Coming soon'}
                       </span>
                     </div>
                   </div>

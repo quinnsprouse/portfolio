@@ -28,7 +28,11 @@ interface CardStackProps {
 
 interface StackImageProps {
   src: string
+  srcSet?: string
   ratio: number
+  width?: number
+  height?: number
+  alt?: string
   index: number
   totalImages: number
   currentIndex: number

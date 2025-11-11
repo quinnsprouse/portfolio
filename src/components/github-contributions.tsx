@@ -1,7 +1,7 @@
 import { memo, useState } from 'react'
 import type { CSSProperties } from 'react'
 
-import type { ContributionCalendar, ContributionWeek } from '@/lib/github'
+import type { ContributionCalendar, ContributionWeek, ContributionDay } from '@/lib/github'
 
 interface TooltipData {
   contributions: number
