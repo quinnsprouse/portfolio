@@ -8,6 +8,7 @@ import mdx from '@mdx-js/rollup'
 import remarkGfm from 'remark-gfm'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter'
+import { nitro } from 'nitro/vite'
 
 export default defineConfig({
   server: {
@@ -37,6 +38,11 @@ export default defineConfig({
     },
     tsConfigPaths(),
     tanstackStart(),
+    nitro({
+      config: {
+        preset: 'vercel',
+      },
+    }),
     viteReact({
       include: /\.(mdx|md|jsx|js|tsx|ts)$/,
     }),
