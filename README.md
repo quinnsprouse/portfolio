@@ -7,6 +7,7 @@ A modern personal portfolio built with TanStack Start (full-stack React), Shadcn
 - Shadcn/ui component library styled through Tailwind CSS v4 and OKLCH design tokens
 - Markdown-powered blog posts sourced from `src/content`
 - GitHub activity section with optional API integration
+- Password-gated “secret tools” area powered by TanStack Start server functions
 - Production build optimized with Vite and tree-shaken React 19
 
 ## Quick Start
@@ -23,6 +24,23 @@ A modern personal portfolio built with TanStack Start (full-stack React), Shadcn
 ## Environment Variables
 Set these in a `.env` file or your shell before running the app:
 - `GITHUB_TOKEN` (server) or `VITE_GITHUB_TOKEN` (client fallback): enables GitHub REST + GraphQL requests for repo metadata and contribution heatmaps. Omit to use the built-in fallback data.
+- `TOOLS_SESSION_SECRET`: 32+ character random string used to encrypt the tools session cookie.
+- `TOOLS_PASSWORD_HASH`: SHA-256 hash of your personal access password (defaults to the bundled example hash).
+- `TOOLS_SESSION_NAME` (optional): customize the cookie name, defaults to `tool-session`.
+- `TOOLS_SESSION_VERSION` (optional): bump to invalidate all existing sessions (defaults to `1`).
+
+An `.env.example` file is included with sane defaults. To rotate the password hash, run:
+
+```bash
+node -e "console.log(require('crypto').createHash('sha256').update('your-new-password').digest('hex'))"
+```
+
+## Secret Micro Tools
+
+- Visit `/tools/login` and enter the password you configured to unlock the session.
+- Once authenticated, `/tools/` lists every available tool and gives you a one-click lock button that clears the session cookie.
+- Individual tools (e.g. `/tools/randomizer`) are still protected because each route calls the same server-side access check inside `beforeLoad`.
+- No database is required—access state lives inside a signed, HTTP-only session cookie configured via `useToolSession` in `src/server/tools/session.ts`.
 
 ## Project Structure
 - `src/routes` — TanStack Start route files; each exports `createFileRoute`
