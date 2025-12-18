@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import type { CSSProperties } from 'react'
 
 import type { ContributionCalendar, ContributionWeek, ContributionDay } from '@/lib/github'
+import { cn } from '@/lib/utils'
 
 interface TooltipData {
   contributions: number
@@ -33,6 +34,8 @@ const rangeFormatter = new Intl.DateTimeFormat('en-US', {
 
 const MOBILE_WEEK_LIMIT = 26
 const GRID_GAP = 4
+const MOBILE_GRID_GAP = 3
+const MOBILE_CELL_MIN = 12
 
 export const GithubContributions = memo(function GithubContributions({ calendar }: GithubContributionsProps) {
   const { weeks, weekLabels, recentWeeks, recentWeekLabels, totalContributions, levelColors } = calendar
@@ -50,17 +53,23 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
     ? `${rangeFormatter.format(new Date(startDate))} – ${rangeFormatter.format(new Date(endDate))}`
     : undefined
 
-  const buildColumnStyle = (count: number): CSSProperties => ({
-    gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))`,
-    columnGap: `${GRID_GAP}px`,
+  const buildColumnStyle = (
+    count: number,
+    options?: { minCell?: number; gap?: number }
+  ): CSSProperties => ({
+    gridTemplateColumns: options?.minCell
+      ? `repeat(${count}, minmax(${options.minCell}px, 1fr))`
+      : `repeat(${count}, minmax(0, 1fr))`,
+    columnGap: `${options?.gap ?? GRID_GAP}px`,
   })
 
-  const weekRowStyle: CSSProperties = {
+  const buildRowStyle = (gap: number): CSSProperties => ({
     gridTemplateRows: 'repeat(7, minmax(0, 1fr))',
-    rowGap: `${GRID_GAP}px`,
-  }
+    rowGap: `${gap}px`,
+  })
 
   const columnStyle = buildColumnStyle(weeks.length)
+  const weekRowStyle = buildRowStyle(GRID_GAP)
 
   // Render a single day cell
   const renderDayCell = (day: ContributionDay | null, dayOfWeek: number, weekIndex: number) => {
@@ -110,19 +119,35 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
   }
 
   // Render a row for a specific day of the week (0=Sun, 1=Mon, ..., 6=Sat)
-  const renderDayRow = (dayOfWeek: number, calendarWeeks: ContributionWeek[]) => {
+  const renderDayRow = (
+    dayOfWeek: number,
+    calendarWeeks: ContributionWeek[],
+    dayColumnStyle: CSSProperties
+  ) => {
     return (
-      <div key={`day-${dayOfWeek}`} className="grid" style={{...columnStyle, rowGap: `${GRID_GAP}px`}}>
+      <div key={`day-${dayOfWeek}`} className="grid" style={dayColumnStyle}>
         {calendarWeeks.map((week, weekIndex) => renderDayCell(week[dayOfWeek] ?? null, dayOfWeek, weekIndex))}
       </div>
     )
   }
 
-  const renderCalendar = (calendarWeeks: ContributionWeek[], labels: string[], variants: { showWeekdayColumn: boolean }) => {
-    const calendarColumnStyle = buildColumnStyle(calendarWeeks.length)
+  const renderCalendar = (
+    calendarWeeks: ContributionWeek[],
+    labels: string[],
+    variants: {
+      showWeekdayColumn: boolean
+      columnStyle: CSSProperties
+      rowStyle: CSSProperties
+      scrollable?: boolean
+    }
+  ) => {
+    const contentClassName = cn(
+      'flex flex-col gap-3',
+      variants.scrollable && 'overflow-x-auto pb-1'
+    )
 
     return (
-      <div className={variants.showWeekdayColumn ? 'grid md:grid-cols-[auto_1fr] md:gap-4' : ''}>
+      <div className={cn(variants.showWeekdayColumn && 'grid md:grid-cols-[auto_1fr] md:gap-4')}>
         {variants.showWeekdayColumn && (
           <div className="hidden md:grid text-[11px] font-medium text-muted-foreground" style={weekRowStyle} aria-hidden>
             {Array.from({ length: 7 }).map((_, index) => (
@@ -133,10 +158,10 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
+        <div className={contentClassName}>
           <div
             className="grid text-[9px] uppercase tracking-wide text-muted-foreground sm:text-[10px]"
-            style={calendarColumnStyle}
+            style={variants.columnStyle}
             aria-hidden
           >
             {labels.map((label, index) => (
@@ -145,9 +170,11 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
               </span>
             ))}
           </div>
-          <div className="grid" style={{ ...weekRowStyle, rowGap: `${GRID_GAP}px` }}>
+          <div className="grid" style={variants.rowStyle}>
             {/* Render 7 rows, one for each day of the week */}
-            {Array.from({ length: 7 }).map((_, dayOfWeek) => renderDayRow(dayOfWeek, calendarWeeks))}
+            {Array.from({ length: 7 }).map((_, dayOfWeek) =>
+              renderDayRow(dayOfWeek, calendarWeeks, variants.columnStyle)
+            )}
           </div>
         </div>
       </div>
@@ -156,6 +183,18 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
 
   const mobileWeeks = recentWeeks?.length ? recentWeeks : weeks.slice(-MOBILE_WEEK_LIMIT)
   const mobileLabels = recentWeekLabels?.length ? recentWeekLabels : weekLabels.slice(-MOBILE_WEEK_LIMIT)
+  const mobileGridMinWidth = mobileWeeks.length * MOBILE_CELL_MIN + (mobileWeeks.length - 1) * MOBILE_GRID_GAP
+  const mobileColumnStyle = {
+    ...buildColumnStyle(mobileWeeks.length, {
+      minCell: MOBILE_CELL_MIN,
+      gap: MOBILE_GRID_GAP,
+    }),
+    minWidth: mobileGridMinWidth,
+  }
+  const mobileRowStyle = {
+    ...buildRowStyle(MOBILE_GRID_GAP),
+    minWidth: mobileGridMinWidth,
+  }
 
   return (
     <div className="rounded-xl border border-border/50 bg-card/60 p-4 md:p-5 relative">
@@ -176,11 +215,20 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
       </div>
 
       <div className="hidden md:block">
-        {renderCalendar(weeks, weekLabels, { showWeekdayColumn: true })}
+        {renderCalendar(weeks, weekLabels, {
+          showWeekdayColumn: true,
+          columnStyle,
+          rowStyle: weekRowStyle,
+        })}
       </div>
 
       <div className="md:hidden">
-        {renderCalendar(mobileWeeks, mobileLabels, { showWeekdayColumn: false })}
+        {renderCalendar(mobileWeeks, mobileLabels, {
+          showWeekdayColumn: false,
+          columnStyle: mobileColumnStyle,
+          rowStyle: mobileRowStyle,
+          scrollable: true,
+        })}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground md:mt-5">
