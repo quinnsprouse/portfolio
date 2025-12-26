@@ -109,6 +109,7 @@ export const GithubContributions = memo(function GithubContributions({ calendar 
     return (
       <span
         key={`day-${dayOfWeek}-${weekIndex}`}
+        role="img"
         className="aspect-square w-full rounded-[3px] border border-border/20 hover:border-border/40 transition-colors cursor-default"
         style={{ backgroundColor: background }}
         onMouseEnter={handleMouseEnter}

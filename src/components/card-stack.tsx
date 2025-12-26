@@ -132,8 +132,8 @@ export function CardStack({ images = defaultImages, maxRotate = 5 }: CardStackPr
 
         <div className="mt-4 flex h-4 items-center justify-center">
           <span
-            className={`text-[0.625rem] font-medium uppercase tracking-[0.32em] text-muted-foreground transition-opacity duration-200 ${
-              hasInteracted ? 'opacity-0' : 'opacity-80'
+            className={`text-[0.625rem] font-medium uppercase tracking-[0.32em] text-foreground/60 transition-opacity duration-200 ${
+              hasInteracted ? 'opacity-0' : 'opacity-100'
             }`}
             aria-hidden={hasInteracted}
           >

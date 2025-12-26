@@ -516,6 +516,13 @@ export const Route = createFileRoute('/')({
       {
         rel: 'canonical',
         href: 'https://quinnsprouse.com'
+      },
+      {
+        rel: 'preload',
+        as: 'image',
+        href: '/images/optimized/photo-JtrwPxnjdA37BdPP-640.webp',
+        type: 'image/webp',
+        fetchPriority: 'high'
       }
     ]
   })
@@ -620,7 +627,7 @@ function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <div className="mx-auto max-w-5xl px-6 py-16 md:px-10 md:py-24 lg:px-16">
+      <main className="mx-auto max-w-5xl px-6 py-16 md:px-10 md:py-24 lg:px-16">
         {/* Header */}
         <header className="mb-16">
           <div className="grid gap-12 md:grid-cols-[minmax(0,1.2fr)_minmax(280px,360px)] md:items-center lg:gap-20">
@@ -807,7 +814,7 @@ function Home() {
             © {new Date().getFullYear()} Quinn Sprouse
           </p>
         </footer>
-      </div>
+      </main>
     </div>
   )
 }
