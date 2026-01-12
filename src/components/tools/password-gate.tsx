@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
 
+import { Icon, ViewIcon, ViewOffIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 type PasswordGateFormProps = {
@@ -53,8 +53,9 @@ export function PasswordGateForm({
               onClick={() => setIsVisible((state) => !state)}
               className="absolute inset-y-0 right-0 flex items-center px-4 text-muted-foreground transition hover:text-foreground"
               tabIndex={-1}
+              aria-label={isVisible ? 'Hide password' : 'Show password'}
             >
-              {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {isVisible ? <Icon icon={ViewOffIcon} className="h-4 w-4" aria-hidden="true" /> : <Icon icon={ViewIcon} className="h-4 w-4" aria-hidden="true" />}
             </button>
           </div>
 

@@ -7,6 +7,7 @@ import {
   motion,
   progress,
   useMotionValue,
+  useReducedMotion,
   useTransform,
   wrap,
 } from 'motion/react'
@@ -42,6 +43,7 @@ interface StackImageProps {
   setNextImage: () => void
   containerSize: number
   onInteract: () => void
+  prefersReducedMotion: boolean | null
 }
 
 const defaultImages: CardImage[] = [
@@ -80,6 +82,7 @@ const defaultImages: CardImage[] = [
 ]
 
 export function CardStack({ images = defaultImages, maxRotate = 5 }: CardStackProps) {
+  const prefersReducedMotion = useReducedMotion()
   const [currentIndex, setCurrentIndex] = useState(0)
   const containerRef = useRef<HTMLUListElement>(null)
   const [size, setSize] = useState(360)
@@ -126,6 +129,7 @@ export function CardStack({ images = defaultImages, maxRotate = 5 }: CardStackPr
               containerSize={size}
               setNextImage={() => setCurrentIndex(wrap(0, images.length, currentIndex + 1))}
               onInteract={() => setHasInteracted(true)}
+              prefersReducedMotion={prefersReducedMotion}
             />
           ))}
         </ul>
@@ -161,6 +165,7 @@ function StackImage({
   minSpeed,
   containerSize,
   onInteract,
+  prefersReducedMotion,
 }: StackImageProps) {
   const baseRotation = mix(0, maxRotate, Math.sin(index))
   const x = useMotionValue(0)
@@ -206,13 +211,13 @@ function StackImage({
         width: displayWidth,
         height: displayHeight,
         zIndex,
-        rotate,
-        x,
+        rotate: prefersReducedMotion ? baseRotation : rotate,
+        x: prefersReducedMotion ? 0 : x,
       }}
-      initial={{ opacity: 0, scale: 0.7 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale }}
-      transition={{ type: 'spring', stiffness: 600, damping: 30 }}
-      drag={index === currentIndex ? 'x' : false}
+      transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 600, damping: 30 }}
+      drag={prefersReducedMotion ? false : (index === currentIndex ? 'x' : false)}
       onDragEnd={handleDragEnd}
       onDragStart={() => {
         if (index === currentIndex) {
@@ -224,7 +229,7 @@ function StackImage({
           onInteract()
         }
       }}
-      whileTap={index === currentIndex ? { scale: 0.96 } : undefined}
+      whileTap={prefersReducedMotion ? undefined : (index === currentIndex ? { scale: 0.96 } : undefined)}
     >
       <img
         src={src}

@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { ArrowUpRight } from 'lucide-react'
+
+import { Icon, ArrowUpRight01Icon } from '@/components/icons'
 
 import { CardStack } from '@/components/card-stack'
+import { Goals2026 } from '@/components/goals-2026'
 import { GithubContributions } from '@/components/github-contributions'
 import { defaultContributionColors } from '@/lib/github'
 import type { ContributionCalendar, ContributionDay, ContributionWeek } from '@/lib/github'
@@ -622,7 +624,7 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
@@ -687,7 +689,7 @@ function Home() {
                         <span className="text-base font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
                           {project.title}
                         </span>
-                        <ArrowUpRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Icon icon={ArrowUpRight01Icon} className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
                       </div>
                       <p className="text-sm text-muted-foreground mt-1" style={{ fontFamily: 'Inter, sans-serif' }}>
                         {project.description}
@@ -720,6 +722,12 @@ function Home() {
               )
             })}
           </div>
+        </section>
+
+        {/* 2026 Goals */}
+        <section className="mb-16">
+          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>2026 Goals</h2>
+          <Goals2026 />
         </section>
 
         <section className="mb-16">

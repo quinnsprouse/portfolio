@@ -2,7 +2,7 @@
 
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion, useAnimationControls, type ValueAnimationTransition } from 'motion/react'
+import { motion, useAnimationControls, useReducedMotion, type ValueAnimationTransition } from 'motion/react'
 
 import { cn } from '@/lib/utils'
 
@@ -30,6 +30,7 @@ export function ComesInGoesOutUnderline<T extends ElementType = 'span'>(
     ...props
   }: Props<T>,
 ) {
+  const prefersReducedMotion = useReducedMotion()
   const controls = useAnimationControls()
   const [blocked, setBlocked] = useState(false)
   const textRef = useRef<HTMLElement | null>(null)
@@ -54,7 +55,7 @@ export function ComesInGoesOutUnderline<T extends ElementType = 'span'>(
   }, [underlineHeightRatio, underlinePaddingRatio])
 
   const animate = async () => {
-    if (blocked) return
+    if (blocked || prefersReducedMotion) return
 
     setBlocked(true)
 

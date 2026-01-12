@@ -2,7 +2,7 @@
 
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
 import { useEffect, useMemo, useRef } from 'react'
-import { motion, type ValueAnimationTransition } from 'motion/react'
+import { motion, useReducedMotion, type ValueAnimationTransition } from 'motion/react'
 
 import { cn } from '@/lib/utils'
 
@@ -26,6 +26,7 @@ export function CenterUnderline<T extends ElementType = 'span'>(
     ...props
   }: UnderlineProps<T>,
 ) {
+  const prefersReducedMotion = useReducedMotion()
   const textRef = useRef<HTMLElement | null>(null)
   const MotionComponent = useMemo(() => motion.create(as ?? 'span'), [as])
 
@@ -58,7 +59,7 @@ export function CenterUnderline<T extends ElementType = 'span'>(
   return (
     <MotionComponent
       className={cn('relative inline-block cursor-pointer', className)}
-      whileHover="visible"
+      whileHover={prefersReducedMotion ? undefined : 'visible'}
       ref={textRef}
       {...props}
     >

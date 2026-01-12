@@ -5,7 +5,8 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
-import { Lock } from 'lucide-react'
+
+import { Icon, LockIcon } from '@/components/icons'
 
 import { ToolList } from '@/components/tools/tool-list'
 import { microTools } from '@/components/tools/registry'
@@ -104,7 +105,7 @@ function ToolsIndexRoute() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-4xl px-6 py-24 text-foreground">
+    <main className="mx-auto min-h-dvh max-w-4xl px-6 py-24 text-foreground">
       <header className="space-y-3 pb-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1
@@ -118,7 +119,7 @@ function ToolsIndexRoute() {
             disabled={isLocking}
             className="inline-flex items-center gap-2 rounded-md border border-border/60 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-foreground hover:text-background disabled:pointer-events-none disabled:opacity-60"
           >
-            <Lock className="h-4 w-4" />
+            <Icon icon={LockIcon} className="h-4 w-4" aria-hidden="true" />
             {isLocking ? 'Locking…' : 'Lock'}
           </button>
         </div>

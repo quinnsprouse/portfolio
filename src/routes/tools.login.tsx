@@ -72,7 +72,7 @@ function ToolLoginRoute() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-2xl px-6 py-24 text-foreground">
+    <main className="mx-auto min-h-dvh max-w-2xl px-6 py-24 text-foreground">
       <Link
         to="/"
         className="mb-10 inline-flex items-center text-sm font-mono text-muted-foreground transition hover:text-foreground"

@@ -228,7 +228,7 @@ function BlogPost() {
 
   if (!PostContent) {
     return (
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-dvh bg-background text-foreground">
         <div className="mx-auto max-w-2xl px-6 py-24 text-center">
           <p className="text-sm font-mono text-muted-foreground mb-4">404</p>
           <h1 className="text-3xl font-light mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>
@@ -246,7 +246,7 @@ function BlogPost() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}

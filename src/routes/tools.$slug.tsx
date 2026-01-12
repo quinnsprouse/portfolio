@@ -61,7 +61,7 @@ function ToolRouteComponent() {
 
   if (!ToolComponent) {
     return (
-      <main className="mx-auto min-h-screen max-w-3xl px-6 py-24 text-foreground">
+      <main className="mx-auto min-h-dvh max-w-3xl px-6 py-24 text-foreground">
         <div className="space-y-6">
           <p className="text-sm font-mono uppercase tracking-[0.3em] text-muted-foreground">
             Missing tool
@@ -81,7 +81,7 @@ function ToolRouteComponent() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl px-6 py-24 text-foreground">
+    <main className="mx-auto min-h-dvh max-w-3xl px-6 py-24 text-foreground">
       <Link
         to="/tools"
         className="mb-8 inline-flex items-center text-sm font-mono text-muted-foreground transition hover:text-foreground"

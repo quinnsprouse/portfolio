@@ -100,7 +100,7 @@ function Blog() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <div className="mx-auto max-w-5xl px-6 py-16 md:px-10 md:py-24 lg:px-16">
         {/* Header */}
         <header className="mb-16">
