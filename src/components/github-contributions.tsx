@@ -206,56 +206,70 @@ export const GithubContributions = memo(function GithubContributions({
         }
       : undefined
 
-    const contentClassName = cn(
-      'flex flex-col gap-3',
-      variants.scrollable &&
-        'overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]'
+    const monthHeader = (
+      <div
+        className="grid text-[9px] uppercase tracking-wide text-muted-foreground sm:text-[10px]"
+        style={variants.columnStyle}
+        aria-hidden
+      >
+        {labels.map((label, index) => (
+          <span key={`month-${index}`} className="leading-[12px]">
+            {label}
+          </span>
+        ))}
+      </div>
     )
 
-    return (
-      <div
-        className={cn(
-          variants.showWeekdayColumn && 'grid md:grid-cols-[auto_1fr] md:gap-4'
+    const dayGrid = (
+      <div className="grid" style={variants.rowStyle}>
+        {/* Render 7 rows, one for each day of the week */}
+        {Array.from({ length: 7 }).map((_, dayOfWeek) =>
+          renderDayRow(dayOfWeek, calendarWeeks, variants.columnStyle)
         )}
-      >
-        {variants.showWeekdayColumn && (
-          <div
-            className="hidden md:grid text-[11px] font-medium text-muted-foreground"
-            style={weekRowStyle}
-            aria-hidden
-          >
-            {Array.from({ length: 7 }).map((_, index) => (
-              <span
-                key={`day-label-${index}`}
-                className={
-                  visibleDayLabels.has(index) ? 'leading-[12px]' : 'invisible'
-                }
-              >
-                {visibleDayLabels.has(index) ? dayNames[index] : '—'}
-              </span>
-            ))}
-          </div>
-        )}
+      </div>
+    )
 
-        <div className={contentClassName} style={scrollContainerStyle}>
-          <div
-            className="grid text-[9px] uppercase tracking-wide text-muted-foreground sm:text-[10px]"
-            style={variants.columnStyle}
-            aria-hidden
-          >
-            {labels.map((label, index) => (
-              <span key={`month-${index}`} className="leading-[12px]">
-                {label}
-              </span>
-            ))}
-          </div>
-          <div className="grid" style={variants.rowStyle}>
-            {/* Render 7 rows, one for each day of the week */}
-            {Array.from({ length: 7 }).map((_, dayOfWeek) =>
-              renderDayRow(dayOfWeek, calendarWeeks, variants.columnStyle)
-            )}
-          </div>
+    if (!variants.showWeekdayColumn) {
+      return (
+        <div
+          className={cn(
+            'flex flex-col gap-3',
+            variants.scrollable &&
+              'overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]'
+          )}
+          style={scrollContainerStyle}
+        >
+          {monthHeader}
+          {dayGrid}
         </div>
+      )
+    }
+
+    return (
+      <div className="grid md:grid-cols-[auto_1fr] md:gap-x-4 md:gap-y-3">
+        <div className="hidden md:block" aria-hidden />
+        {monthHeader}
+
+        <div
+          className="hidden md:grid self-stretch text-[11px] font-medium text-muted-foreground"
+          style={variants.rowStyle}
+          aria-hidden
+        >
+          {Array.from({ length: 7 }).map((_, index) => (
+            <span
+              key={`day-label-${index}`}
+              className={
+                visibleDayLabels.has(index)
+                  ? 'flex items-center leading-none'
+                  : 'invisible'
+              }
+            >
+              {visibleDayLabels.has(index) ? dayNames[index] : '—'}
+            </span>
+          ))}
+        </div>
+
+        {dayGrid}
       </div>
     )
   }
