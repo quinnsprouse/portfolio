@@ -9,6 +9,7 @@ import type {
 import { cn } from '@/lib/utils'
 
 interface TooltipData {
+  id: string
   contributions: number
   date: string
   dayName: string
@@ -48,7 +49,7 @@ const parseIsoDateUtc = (isoDate: string) =>
 const MOBILE_WEEK_LIMIT = 26
 const GRID_GAP = 4
 const MOBILE_GRID_GAP = 3
-const MOBILE_CELL_MIN = 12
+const MOBILE_CELL_MIN = 14
 
 export const GithubContributions = memo(function GithubContributions({
   calendar,
@@ -124,10 +125,12 @@ export const GithubContributions = memo(function GithubContributions({
     const date = parseIsoDateUtc(day.date)
     const dayName = weekdayFormatter.format(date)
     const formattedDate = dateFormatter.format(date)
+    const tooltipId = `${day.date}-${dayOfWeek}-${weekIndex}`
 
     const showTooltip = (el: HTMLElement) => {
       const rect = el.getBoundingClientRect()
       setTooltip({
+        id: tooltipId,
         contributions,
         date: formattedDate,
         dayName,
@@ -138,6 +141,15 @@ export const GithubContributions = memo(function GithubContributions({
 
     const hideTooltip = () => {
       setTooltip(null)
+    }
+
+    const toggleTooltip = (el: HTMLElement) => {
+      if (tooltip?.id === tooltipId) {
+        hideTooltip()
+        return
+      }
+
+      showTooltip(el)
     }
 
     return (
@@ -151,6 +163,13 @@ export const GithubContributions = memo(function GithubContributions({
         onMouseLeave={hideTooltip}
         onFocus={(e) => showTooltip(e.currentTarget)}
         onBlur={hideTooltip}
+        onClick={(e) => toggleTooltip(e.currentTarget)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            toggleTooltip(e.currentTarget)
+          }
+        }}
         aria-label={`${contributions} contribution${contributions === 1 ? '' : 's'} on ${formattedDate}`}
       />
     )
@@ -181,9 +200,16 @@ export const GithubContributions = memo(function GithubContributions({
       scrollable?: boolean
     }
   ) => {
+    const scrollContainerStyle = variants.scrollable
+      ? {
+          touchAction: 'pan-x',
+        }
+      : undefined
+
     const contentClassName = cn(
       'flex flex-col gap-3',
-      variants.scrollable && 'overflow-x-auto pb-1'
+      variants.scrollable &&
+        'overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]'
     )
 
     return (
@@ -211,7 +237,7 @@ export const GithubContributions = memo(function GithubContributions({
           </div>
         )}
 
-        <div className={contentClassName}>
+        <div className={contentClassName} style={scrollContainerStyle}>
           <div
             className="grid text-[9px] uppercase tracking-wide text-muted-foreground sm:text-[10px]"
             style={variants.columnStyle}
@@ -285,6 +311,9 @@ export const GithubContributions = memo(function GithubContributions({
       </div>
 
       <div className="md:hidden">
+        <p className="mb-2 text-[11px] text-muted-foreground/80">
+          Swipe horizontally for more days
+        </p>
         {renderCalendar(mobileWeeks, mobileLabels, {
           showWeekdayColumn: false,
           columnStyle: mobileColumnStyle,
