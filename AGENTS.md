@@ -1,16 +1,26 @@
-# Repository Guidelines
+# Agent Instructions
 
-## Project Architecture & Directories
-TanStack Start powers routing in `src/routes`, where each file exports `createFileRoute` with co-located loaders via `createServerFn`. Shared UI primitives live in `src/components/ui`, while higher-level widgets sit beside feature code under `src/components`. Markdown-driven content (blog posts, metadata) resides in `src/content`, parsed through helpers in `src/lib`. Global styles, Tailwind setup, and CSS variables are defined in `src/styles/app.css`. Generated assets such as `src/routeTree.gen.ts` should be treated as read-only.
+This is a TanStack Start + React 19 TypeScript portfolio app with shadcn/ui, Tailwind v4, MDX content, and Vite.
 
-## Rendering & Data Flow Patterns
-Routes hydrate on the server first, then seamlessly hand off to the client. Fetch external data inside `createServerFn` handlers to keep secrets server-side and return serializable payloads. For client-side revalidation, call `router.invalidate()` or leverage loader dependencies. Keep long-running effects out of render and favor derived data selectors.
+- Package manager: `npm`
+- Core commands:
+  - `npm run check` (strict lint + typecheck + unit tests)
+  - `npm run check:push` (`check` + Playwright smoke test)
+  - `npm run build` (typecheck + production build)
+  - `npm run dev` (local dev server at `http://localhost:3000`)
 
-## UI System & Styling Conventions
-Use Shadcn/ui components as the base layer, extending them with Tailwind utility classes. For conditional styling, compose class strings with the `cn` helper from `@/lib/utils`. Typography pairings are baked into components; prefer prop-driven variants over ad-hoc classes. Respect the design tokens exposed as OKLCH CSS variables (`bg-background`, `text-muted-foreground`, etc.) to maintain light/dark parity.
+## Plan Loop
 
-## Tooling & Development Commands
-Run `npm run dev` for the Vite dev server with SSR and hot reloading at http://localhost:3000. `npm run build` generates the production bundle, while `npm run start` serves that build for verification. The repo currently has no automated tests—additions should introduce Vitest + React Testing Library and update the `npm test` script before integrating with CI.
+Use this loop for non-trivial work:
 
-## Content & Asset Workflow
-Blog entries use Markdown with frontmatter in `src/content`; keep slugs in sync with filenames (`blog.$slug.tsx`). Optimized images ship from `public/` or are imported directly for bundling; run additions through image compression to protect Core Web Vitals. Environment variables such as `GITHUB_TOKEN` or `VITE_GITHUB_TOKEN` enable GitHub API features—define them locally without committing secrets.
+1. Plan
+2. Execute
+3. Test
+4. Commit
+
+## Project Rules
+
+- Treat `src/routeTree.gen.ts` as generated/read-only.
+- Keep server-only fetch/secrets in `createServerFn` handlers.
+- Build UI from `src/components/ui` primitives and compose classes with `cn`.
+- Keep blog content in `src/content` with slug/filename parity.

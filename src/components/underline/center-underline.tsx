@@ -1,8 +1,14 @@
-"use client"
+'use client'
 
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
 import { useEffect, useMemo, useRef } from 'react'
-import { motion, useReducedMotion, type ValueAnimationTransition } from 'motion/react'
+import {
+  LazyMotion,
+  domAnimation,
+  m,
+  useReducedMotion,
+  type ValueAnimationTransition,
+} from 'motion/react'
 
 import { cn } from '@/lib/utils'
 
@@ -15,20 +21,18 @@ type UnderlineProps<T extends ElementType> = {
   underlinePaddingRatio?: number
 } & Omit<ComponentPropsWithoutRef<T>, 'as' | 'children' | 'className'>
 
-export function CenterUnderline<T extends ElementType = 'span'>(
-  {
-    children,
-    as,
-    className,
-    transition = { duration: 0.25, ease: 'easeInOut' },
-    underlineHeightRatio = 0.1,
-    underlinePaddingRatio = 0.01,
-    ...props
-  }: UnderlineProps<T>,
-) {
+export function CenterUnderline<T extends ElementType = 'span'>({
+  children,
+  as,
+  className,
+  transition = { duration: 0.25, ease: 'easeInOut' },
+  underlineHeightRatio = 0.1,
+  underlinePaddingRatio = 0.01,
+  ...props
+}: UnderlineProps<T>) {
   const prefersReducedMotion = useReducedMotion()
   const textRef = useRef<HTMLElement | null>(null)
-  const MotionComponent = useMemo(() => motion.create(as ?? 'span'), [as])
+  const MotionComponent = useMemo(() => m.create(as ?? 'span'), [as])
 
   useEffect(() => {
     const updateUnderlineStyles = () => {
@@ -36,8 +40,14 @@ export function CenterUnderline<T extends ElementType = 'span'>(
       const fontSize = parseFloat(getComputedStyle(textRef.current).fontSize)
       const underlineHeight = fontSize * underlineHeightRatio
       const underlinePadding = fontSize * underlinePaddingRatio
-      textRef.current.style.setProperty('--underline-height', `${underlineHeight}px`)
-      textRef.current.style.setProperty('--underline-padding', `${underlinePadding}px`)
+      textRef.current.style.setProperty(
+        '--underline-height',
+        `${underlineHeight}px`
+      )
+      textRef.current.style.setProperty(
+        '--underline-padding',
+        `${underlinePadding}px`
+      )
     }
 
     updateUnderlineStyles()
@@ -57,23 +67,25 @@ export function CenterUnderline<T extends ElementType = 'span'>(
   }
 
   return (
-    <MotionComponent
-      className={cn('relative inline-block cursor-pointer', className)}
-      whileHover={prefersReducedMotion ? undefined : 'visible'}
-      ref={textRef}
-      {...props}
-    >
-      <span>{children}</span>
-      <motion.span
-        className="absolute left-1/2 -translate-x-1/2 bg-current"
-        style={{
-          height: 'var(--underline-height)',
-          bottom: 'calc(-1 * var(--underline-padding))',
-        }}
-        variants={underlineVariants}
-        aria-hidden="true"
-      />
-    </MotionComponent>
+    <LazyMotion features={domAnimation}>
+      <MotionComponent
+        className={cn('relative inline-block cursor-pointer', className)}
+        whileHover={prefersReducedMotion ? undefined : 'visible'}
+        ref={textRef}
+        {...props}
+      >
+        <span>{children}</span>
+        <m.span
+          className="absolute left-1/2 -translate-x-1/2 bg-current"
+          style={{
+            height: 'var(--underline-height)',
+            bottom: 'calc(-1 * var(--underline-padding))',
+          }}
+          variants={underlineVariants}
+          aria-hidden="true"
+        />
+      </MotionComponent>
+    </LazyMotion>
   )
 }
 

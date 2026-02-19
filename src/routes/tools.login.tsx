@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useRouter,
+} from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 
 import { PasswordGateForm } from '@/components/tools/password-gate'
@@ -38,14 +43,31 @@ function ToolLoginRoute() {
 
   function resolveDestination(raw?: string) {
     if (!raw) {
-      return '/tools'
+      return { to: '/tools' as const }
     }
 
     if (raw.startsWith('http') || raw.startsWith('//')) {
-      return '/tools'
+      return { to: '/tools' as const }
     }
 
-    return raw.startsWith('/') ? raw : '/tools'
+    const normalized = raw.startsWith('/') ? raw : '/tools'
+
+    if (normalized === '/tools' || normalized === '/tools/') {
+      return { to: '/tools' as const }
+    }
+
+    if (normalized.startsWith('/tools/')) {
+      const slug = normalized.slice('/tools/'.length).split('/')[0]
+
+      if (slug) {
+        return {
+          to: '/tools/$slug' as const,
+          params: { slug },
+        }
+      }
+    }
+
+    return { to: '/tools' as const }
   }
 
   async function handleUnlock(password: string) {
@@ -63,9 +85,7 @@ function ToolLoginRoute() {
 
       await router.invalidate()
 
-      await router.navigate({
-        to: resolveDestination(redirectAfterLogin) as any,
-      })
+      await router.navigate(resolveDestination(redirectAfterLogin))
     } finally {
       setIsSubmitting(false)
     }
@@ -75,7 +95,7 @@ function ToolLoginRoute() {
     <main className="mx-auto min-h-dvh max-w-2xl px-6 py-24 text-foreground">
       <Link
         to="/"
-        className="mb-10 inline-flex items-center text-sm font-mono text-muted-foreground transition hover:text-foreground"
+        className="mb-10 inline-flex items-center text-sm font-mono text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
       >
         ← Back to site
       </Link>

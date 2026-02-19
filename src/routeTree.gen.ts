@@ -52,8 +52,8 @@ export interface FileRoutesByFullPath {
   '/blog/$slug': typeof BlogSlugRoute
   '/tools/$slug': typeof ToolsSlugRoute
   '/tools/login': typeof ToolsLoginRoute
-  '/blog': typeof BlogIndexRoute
-  '/tools': typeof ToolsIndexRoute
+  '/blog/': typeof BlogIndexRoute
+  '/tools/': typeof ToolsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -79,8 +79,8 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/tools/$slug'
     | '/tools/login'
-    | '/blog'
-    | '/tools'
+    | '/blog/'
+    | '/tools/'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/blog/$slug' | '/tools/$slug' | '/tools/login' | '/blog' | '/tools'
   id:
@@ -114,14 +114,14 @@ declare module '@tanstack/react-router' {
     '/tools/': {
       id: '/tools/'
       path: '/tools'
-      fullPath: '/tools'
+      fullPath: '/tools/'
       preLoaderRoute: typeof ToolsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
       id: '/blog/'
       path: '/blog'
-      fullPath: '/blog'
+      fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }

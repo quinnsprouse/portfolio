@@ -4,15 +4,18 @@ import { createServerFn } from '@tanstack/react-start'
 import { Icon, ArrowUpRight01Icon } from '@/components/icons'
 
 import { CardStack } from '@/components/card-stack'
-import { Goals2026 } from '@/components/goals-2026'
+
 import { GithubContributions } from '@/components/github-contributions'
 import { defaultContributionColors } from '@/lib/github'
-import type { ContributionCalendar, ContributionDay, ContributionWeek } from '@/lib/github'
+import type {
+  ContributionCalendar,
+  ContributionDay,
+  ContributionWeek,
+} from '@/lib/github'
 import { ComesInGoesOutUnderline } from '@/components/underline/comes-in-goes-out-underline'
-import { GoesOutComesInUnderline } from '@/components/underline/goes-out-comes-in-underline'
 
-const getGitHubRepoInfo = createServerFn({ method: 'GET' })
-  .handler(async () => {
+const getGitHubRepoInfo = createServerFn({ method: 'GET' }).handler(
+  async () => {
     const repos = [
       { name: 'bible-app', url: 'quinnsprouse/bible-app' },
       { name: 'personal-photo-blog', url: 'quinnsprouse/personal-photo-blog' },
@@ -27,8 +30,8 @@ const getGitHubRepoInfo = createServerFn({ method: 'GET' })
     for (const repo of repos) {
       try {
         const headers: HeadersInit = {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Portfolio-Website'
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'Portfolio-Website',
         }
 
         // Add auth header if token is available
@@ -36,19 +39,22 @@ const getGitHubRepoInfo = createServerFn({ method: 'GET' })
           headers['Authorization'] = `Bearer ${token}`
         }
 
-        const response = await fetch(`https://api.github.com/repos/${repo.url}`, { headers })
+        const response = await fetch(
+          `https://api.github.com/repos/${repo.url}`,
+          { headers }
+        )
 
         if (response.ok) {
           const data = await response.json()
           repoData[repo.name] = {
-            lastUpdated: new Date(data.pushed_at).toISOString().split('T')[0]
+            lastUpdated: new Date(data.pushed_at).toISOString().split('T')[0],
           }
         } else if (response.status === 404 || response.status === 401) {
           // Private repo without auth - use fallback dates
           const fallbackDates: Record<string, string> = {
             'bible-app': '2024-12-18',
             'personal-photo-blog': '2024-12-15',
-            'workit': '2023-11-22',
+            workit: '2023-11-22',
           }
           if (fallbackDates[repo.name]) {
             repoData[repo.name] = { lastUpdated: fallbackDates[repo.name] }
@@ -60,7 +66,7 @@ const getGitHubRepoInfo = createServerFn({ method: 'GET' })
         const fallbackDates: Record<string, string> = {
           'bible-app': '2024-12-18',
           'personal-photo-blog': '2024-12-15',
-          'workit': '2023-11-22',
+          workit: '2023-11-22',
         }
         if (fallbackDates[repo.name]) {
           repoData[repo.name] = { lastUpdated: fallbackDates[repo.name] }
@@ -69,20 +75,43 @@ const getGitHubRepoInfo = createServerFn({ method: 'GET' })
     }
 
     return repoData
-  })
+  }
+)
 
 const resolveGitHubToken = () => {
   const env = typeof process !== 'undefined' ? process.env : undefined
 
-  return env?.GITHUB_TOKEN
-    ?? env?.VITE_GITHUB_TOKEN
-    ?? undefined
+  return env?.GITHUB_TOKEN ?? env?.VITE_GITHUB_TOKEN ?? undefined
 }
 
 const normalizeContributionColors = (colors: string[]) =>
-  Array.from({ length: 5 }, (_, index) => colors[index] ?? defaultContributionColors[index])
+  Array.from(
+    { length: 5 },
+    (_, index) => colors[index] ?? defaultContributionColors[index]
+  )
 
 const MOBILE_WEEKS = 26
+const DAY_END_TIME_UTC = {
+  hours: 23,
+  minutes: 59,
+  seconds: 59,
+  milliseconds: 999,
+}
+
+const parseIsoDateUtc = (isoDate: string) => {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  return new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1))
+}
+
+const toIsoDateUtc = (date: Date) => date.toISOString().slice(0, 10)
+
+const getTodayIsoDateUtc = () => toIsoDateUtc(new Date())
+
+const getIsoDateOffsetFromUtcToday = (offsetDays: number) => {
+  const date = parseIsoDateUtc(getTodayIsoDateUtc())
+  date.setUTCDate(date.getUTCDate() + offsetDays)
+  return toIsoDateUtc(date)
+}
 
 const buildContributionCalendar = (
   weeks: ContributionWeek[],
@@ -91,7 +120,10 @@ const buildContributionCalendar = (
 ): ContributionCalendar => {
   const normalizedColors = normalizeContributionColors(colors)
   const weekLabels: string[] = []
-  const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short' })
+  const monthFormatter = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    timeZone: 'UTC',
+  })
   let lastMonth = -1
   let lastYear = -1
 
@@ -103,20 +135,20 @@ const buildContributionCalendar = (
       return
     }
 
-    const date = new Date(firstActiveDay.date)
-    const currentMonth = date.getMonth()
-    const currentYear = date.getFullYear()
+    const date = parseIsoDateUtc(firstActiveDay.date)
+    const currentMonth = date.getUTCMonth()
+    const currentYear = date.getUTCFullYear()
 
     // Show label only on first occurrence of a new month
     if (currentMonth !== lastMonth || currentYear !== lastYear) {
       // Check if the first day of this week is early enough in the month (day 1-14)
       // GitHub only shows month labels when there's enough space
-      const firstDayOfWeek = new Date(firstActiveDay.date)
-      const dayOfMonth = firstDayOfWeek.getDate()
+      const firstDayOfWeek = parseIsoDateUtc(firstActiveDay.date)
+      const firstDayWeekIndex = firstDayOfWeek.getUTCDay()
+      const dayOfMonth = firstDayOfWeek.getUTCDate()
 
-      // Skip label for the very first week if it's a partial week (< 7 days)
-      // This prevents showing labels when the year starts mid-week
-      if (weekIndex === 0 && week.length < 7) {
+      // Skip label for the very first partial week when the range starts mid-week.
+      if (weekIndex === 0 && firstDayWeekIndex !== 0) {
         weekLabels.push('')
       } else if (dayOfMonth <= 14) {
         weekLabels.push(monthFormatter.format(date))
@@ -140,26 +172,29 @@ const buildContributionCalendar = (
   }
 }
 
-const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
-  .handler(async () => {
+const getGitHubContributionCalendar = createServerFn({ method: 'GET' }).handler(
+  async () => {
     const username = 'quinnsprouse'
     const token = resolveGitHubToken()
 
     if (token) {
       try {
-        // Set 'to' to end of today
-        const to = new Date()
-        to.setHours(23, 59, 59, 999)
-
-        // Set 'from' to exactly 365 days ago from today
-        const from = new Date(to)
-        from.setDate(from.getDate() - 364) // 364 days ago + today = 365 days total
-        from.setHours(0, 0, 0, 0)
+        const todayIso = getTodayIsoDateUtc()
+        const fromIso = getIsoDateOffsetFromUtcToday(-364)
+        const todayUtc = parseIsoDateUtc(todayIso)
+        const from = parseIsoDateUtc(fromIso)
+        const to = new Date(todayUtc)
+        to.setUTCHours(
+          DAY_END_TIME_UTC.hours,
+          DAY_END_TIME_UTC.minutes,
+          DAY_END_TIME_UTC.seconds,
+          DAY_END_TIME_UTC.milliseconds
+        )
 
         const response = await fetch('https://api.github.com/graphql', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
             'User-Agent': 'Portfolio-Website',
           },
@@ -195,7 +230,7 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
           throw new Error(`GitHub GraphQL request failed: ${response.status}`)
         }
 
-        const graphResult = await response.json() as {
+        const graphResult = (await response.json()) as {
           data?: {
             user?: {
               contributionsCollection?: {
@@ -217,27 +252,25 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
         }
 
         if (graphResult.errors?.length) {
-          const aggregated = graphResult.errors.map((err) => err.message).join('; ')
+          const aggregated = graphResult.errors
+            .map((err) => err.message)
+            .join('; ')
           throw new Error(`GitHub GraphQL errors: ${aggregated}`)
         }
 
-        const calendarData = graphResult.data?.user?.contributionsCollection?.contributionCalendar
+        const calendarData =
+          graphResult.data?.user?.contributionsCollection?.contributionCalendar
 
         if (calendarData) {
           const colors = normalizeContributionColors(calendarData.colors ?? [])
-          const today = new Date()
-          today.setHours(23, 59, 59, 999)
 
           // Create a map of all contribution days
           const dayMap = new Map<string, ContributionDay>()
 
           for (const week of calendarData.weeks) {
             for (const day of week.contributionDays) {
-              const dayDate = new Date(day.date)
-              dayDate.setHours(0, 0, 0, 0)
-
-              // Skip future dates
-              if (dayDate > today) {
+              // Keep the exact 365-day window.
+              if (day.date < fromIso || day.date > todayIso) {
                 continue
               }
 
@@ -257,17 +290,18 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
             return null
           }
 
-          const firstDate = new Date(sortedDates[0]!)
-          const lastDate = new Date(sortedDates[sortedDates.length - 1]!)
-
-          // Cap at today
-          const effectiveLastDate = lastDate > today ? today : lastDate
+          const firstIsoDate = sortedDates[0]!
+          const lastIsoDate = sortedDates[sortedDates.length - 1]!
+          const effectiveLastIsoDate =
+            lastIsoDate > todayIso ? todayIso : lastIsoDate
+          const firstDate = parseIsoDateUtc(firstIsoDate)
+          const effectiveLastDate = parseIsoDateUtc(effectiveLastIsoDate)
 
           // Find the Sunday of the week containing firstDate
           // getDay() returns 0 for Sunday, 1 for Monday, etc.
           const startDate = new Date(firstDate)
-          const dayOfWeek = startDate.getDay()
-          startDate.setDate(startDate.getDate() - dayOfWeek) // Go back to Sunday
+          const dayOfWeek = startDate.getUTCDay()
+          startDate.setUTCDate(startDate.getUTCDate() - dayOfWeek) // Go back to Sunday
 
           // Build weeks: each week is [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
           const weeks: ContributionWeek[] = []
@@ -276,9 +310,9 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
           for (
             let cursor = new Date(startDate);
             cursor <= effectiveLastDate;
-            cursor.setDate(cursor.getDate() + 1)
+            cursor.setUTCDate(cursor.getUTCDate() + 1)
           ) {
-            const isoDate = cursor.toISOString().split('T')[0]!
+            const isoDate = toIsoDateUtc(cursor)
             const contributionDay = dayMap.get(isoDate) ?? null
 
             currentWeek.push(contributionDay)
@@ -299,26 +333,42 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
             weeks.push(currentWeek)
           }
 
-          return buildContributionCalendar(weeks, colors, calendarData.totalContributions)
+          return buildContributionCalendar(
+            weeks,
+            colors,
+            calendarData.totalContributions
+          )
         }
       } catch (error) {
-        console.error('Failed to fetch GitHub contributions via GraphQL:', error)
+        console.error(
+          'Failed to fetch GitHub contributions via GraphQL:',
+          error
+        )
       }
     }
 
     try {
-      const response = await fetch('https://github.com/users/quinnsprouse/contributions', {
-        headers: {
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+      const todayIso = getTodayIsoDateUtc()
+      const fromIso = getIsoDateOffsetFromUtcToday(-364)
+      const response = await fetch(
+        'https://github.com/users/quinnsprouse/contributions',
+        {
+          headers: {
+            Accept:
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+            'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+          },
         }
-      })
+      )
 
       if (!response.ok) {
-        throw new Error(`GitHub contributions request failed: ${response.status}`)
+        throw new Error(
+          `GitHub contributions request failed: ${response.status}`
+        )
       }
 
       const html = await response.text()
@@ -343,11 +393,20 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
           continue
         }
 
+        // Keep the exact 365-day window.
+        if (date < fromIso || date > todayIso) {
+          continue
+        }
+
         const count = Number.parseInt(attributes['data-count'] ?? '0', 10)
         const level = Number.parseInt(attributes['data-level'] ?? '0', 10)
         const fill = attributes['fill']
 
-        if (Number.isFinite(level) && fill && levelColors[level] === undefined) {
+        if (
+          Number.isFinite(level) &&
+          fill &&
+          levelColors[level] === undefined
+        ) {
           levelColors[level] = fill
         }
 
@@ -368,19 +427,16 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
         throw new Error('No contribution data parsed from GitHub response')
       }
 
-      const firstDate = new Date(sortedDates[0]!)
-      const lastDate = new Date(sortedDates[sortedDates.length - 1]!)
-
-      // Don't show future dates - cap at today
-      const today = new Date()
-      today.setHours(23, 59, 59, 999)
-      const effectiveLastDate = lastDate > today ? today : lastDate
+      const lastIsoDate = sortedDates[sortedDates.length - 1]!
+      const effectiveLastIsoDate =
+        lastIsoDate > todayIso ? todayIso : lastIsoDate
+      const effectiveLastDate = parseIsoDateUtc(effectiveLastIsoDate)
 
       // Find the Sunday of the week containing firstDate
       // getDay() returns 0 for Sunday, 1 for Monday, etc.
-      const startDate = new Date(firstDate)
-      const dayOfWeek = startDate.getDay()
-      startDate.setDate(startDate.getDate() - dayOfWeek) // Go back to Sunday
+      const startDate = parseIsoDateUtc(sortedDates[0]!)
+      const dayOfWeek = startDate.getUTCDay()
+      startDate.setUTCDate(startDate.getUTCDate() - dayOfWeek) // Go back to Sunday
 
       // Build weeks: each week is [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
       const weeks: ContributionWeek[] = []
@@ -389,9 +445,9 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
       for (
         let cursor = new Date(startDate);
         cursor <= effectiveLastDate;
-        cursor.setDate(cursor.getDate() + 1)
+        cursor.setUTCDate(cursor.getUTCDate() + 1)
       ) {
-        const isoDate = cursor.toISOString().split('T')[0]!
+        const isoDate = toIsoDateUtc(cursor)
         const contributionDay = dayMap.get(isoDate) ?? null
 
         currentWeek.push(contributionDay)
@@ -413,10 +469,15 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
       }
 
       const totalMatch = html.match(/([0-9,]+) contributions in the last year/i)
-      const totalContributions = totalMatch ? Number.parseInt(totalMatch[1]!.replace(/,/g, ''), 10) : undefined
+      const totalContributions = totalMatch
+        ? Number.parseInt(totalMatch[1]!.replace(/,/g, ''), 10)
+        : undefined
 
       const colors = normalizeContributionColors(
-        Array.from({ length: 5 }, (_, index) => levelColors[index] ?? defaultContributionColors[index])
+        Array.from(
+          { length: 5 },
+          (_, index) => levelColors[index] ?? defaultContributionColors[index]
+        )
       )
 
       return buildContributionCalendar(weeks, colors, totalContributions)
@@ -424,7 +485,8 @@ const getGitHubContributionCalendar = createServerFn({ method: 'GET' })
       console.error('Failed to fetch GitHub contributions via HTML:', error)
       return null
     }
-  })
+  }
+)
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -439,95 +501,99 @@ export const Route = createFileRoute('/')({
   head: () => ({
     meta: [
       {
-        title: 'Quinn Sprouse - Product Engineer & Software Developer'
+        title: 'Quinn Sprouse - Product Engineer & Software Developer',
       },
       {
         name: 'description',
-        content: 'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth. View my portfolio and latest projects.'
+        content:
+          'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth. View my portfolio and latest projects.',
       },
       {
         name: 'keywords',
-        content: 'Quinn Sprouse, software engineer, product engineer, full-stack developer, React, TypeScript, portfolio'
+        content:
+          'Quinn Sprouse, software engineer, product engineer, full-stack developer, React, TypeScript, portfolio',
       },
       {
         property: 'og:title',
-        content: 'Quinn Sprouse - Product Engineer & Software Developer'
+        content: 'Quinn Sprouse - Product Engineer & Software Developer',
       },
       {
         property: 'og:description',
-        content: 'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth.'
+        content:
+          'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth.',
       },
       {
         property: 'og:type',
-        content: 'website'
+        content: 'website',
       },
       {
         property: 'og:url',
-        content: 'https://quinnsprouse.com'
+        content: 'https://quinnsprouse.com',
       },
       {
         property: 'og:site_name',
-        content: 'Quinn Sprouse Portfolio'
+        content: 'Quinn Sprouse Portfolio',
       },
       {
         property: 'og:image',
-        content: 'https://quinnsprouse.com/og-image.png'
+        content: 'https://quinnsprouse.com/og-image.png',
       },
       {
         property: 'og:image:width',
-        content: '1200'
+        content: '1200',
       },
       {
         property: 'og:image:height',
-        content: '630'
+        content: '630',
       },
       {
         property: 'og:image:alt',
-        content: 'Quinn Sprouse - Product Engineer & Software Developer'
+        content: 'Quinn Sprouse - Product Engineer & Software Developer',
       },
       {
         name: 'twitter:card',
-        content: 'summary_large_image'
+        content: 'summary_large_image',
       },
       {
         name: 'twitter:image',
-        content: 'https://quinnsprouse.com/og-image.png'
+        content: 'https://quinnsprouse.com/og-image.png',
       },
       {
         name: 'twitter:title',
-        content: 'Quinn Sprouse - Product Engineer & Software Developer'
+        content: 'Quinn Sprouse - Product Engineer & Software Developer',
       },
       {
         name: 'twitter:description',
-        content: 'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth.'
+        content:
+          'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth.',
       },
       {
         name: 'author',
-        content: 'Quinn Sprouse'
+        content: 'Quinn Sprouse',
       },
       {
         name: 'robots',
-        content: 'index, follow'
+        content: 'index, follow',
       },
       {
         name: 'viewport',
-        content: 'width=device-width, initial-scale=1'
-      }
+        content: 'width=device-width, initial-scale=1',
+      },
     ],
     links: [
       {
         rel: 'canonical',
-        href: 'https://quinnsprouse.com'
+        href: 'https://quinnsprouse.com',
       },
       {
         rel: 'preload',
         as: 'image',
         href: '/images/optimized/photo-JtrwPxnjdA37BdPP-640.webp',
         type: 'image/webp',
-        fetchPriority: 'high'
-      }
-    ]
-  })
+        fetchPriority: 'high',
+      },
+    ],
+  }),
 })
 
 interface Project {
@@ -605,22 +671,23 @@ function Home() {
 
   // Structured data for SEO
   const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "Quinn Sprouse",
-    "jobTitle": "Product Engineer",
-    "description": "Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth.",
-    "url": "https://quinnsprouse.com",
-    "sameAs": [
-      "https://github.com/quinnsprouse",
-      "https://www.linkedin.com/",
-      "https://x.com/QuinnSprouse"
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: 'Quinn Sprouse',
+    jobTitle: 'Product Engineer',
+    description:
+      'Product engineer focused on thoughtful digital experiences. Building tools for study, focus, and personal growth.',
+    url: 'https://quinnsprouse.com',
+    sameAs: [
+      'https://github.com/quinnsprouse',
+      'https://www.linkedin.com/',
+      'https://x.com/QuinnSprouse',
     ],
-    "email": "quinnsprouse@gmail.com",
-    "worksFor": {
-      "@type": "Organization",
-      "name": "Redi.Health"
-    }
+    email: 'quinnsprouse@gmail.com',
+    worksFor: {
+      '@type': 'Organization',
+      name: 'Redi.Health',
+    },
   }
 
   return (
@@ -629,15 +696,28 @@ function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <main className="mx-auto max-w-5xl px-6 py-16 md:px-10 md:py-24 lg:px-16">
+      <main
+        id="main"
+        className="mx-auto max-w-5xl px-6 py-16 md:px-10 md:py-24 lg:px-16"
+      >
         {/* Header */}
         <header className="mb-16">
           <div className="grid gap-12 md:grid-cols-[minmax(0,1.2fr)_minmax(280px,360px)] md:items-center lg:gap-20">
             <div className="md:flex md:flex-col md:justify-center">
-              <h1 className="text-3xl font-light mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>Quinn Sprouse</h1>
-              <p className="text-base text-muted-foreground leading-relaxed" style={{ fontFamily: 'Inter, sans-serif' }}>
-                Product engineer focused on thoughtful digital experiences—currently working from Columbus, Ohio and
-                shaping tools that feel calm, tactile, and purposeful. Most days are spent iterating on{' '}
+              <h1
+                className="text-3xl font-light mb-4 text-balance"
+                style={{ fontFamily: 'Crimson Pro, serif' }}
+              >
+                Quinn Sprouse
+              </h1>
+              <p
+                className="text-base text-muted-foreground leading-relaxed"
+                style={{ fontFamily: 'Inter, sans-serif' }}
+              >
+                Product engineer focused on thoughtful digital
+                experiences—currently working from Columbus, Ohio and shaping
+                tools that feel calm, tactile, and purposeful. Most days are
+                spent iterating on{' '}
                 <a
                   href="https://luminabible.app"
                   className="underline decoration-dotted underline-offset-4 transition-colors hover:text-primary"
@@ -655,7 +735,7 @@ function Home() {
                 </Link>
                 .
               </p>
-          </div>
+            </div>
             <div className="flex justify-center md:justify-end md:pl-10 lg:pl-16">
               <CardStack />
             </div>
@@ -664,13 +744,20 @@ function Home() {
 
         {/* Projects */}
         <section className="mb-16">
-          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>Selected Work</h2>
+          <h2
+            className="text-xl font-light mb-6 text-balance"
+            style={{ fontFamily: 'Crimson Pro, serif' }}
+          >
+            Selected Work
+          </h2>
           <div className="space-y-4">
             {projects.map((project) => {
               const lastUpdated = project.repoKey
                 ? githubData[project.repoKey]?.lastUpdated
                 : undefined
-              const parsedLastUpdated = lastUpdated ? Date.parse(lastUpdated) : NaN
+              const parsedLastUpdated = lastUpdated
+                ? Date.parse(lastUpdated)
+                : NaN
               const displayYear = Number.isNaN(parsedLastUpdated)
                 ? project.year
                 : new Date(parsedLastUpdated).getFullYear().toString()
@@ -686,12 +773,22 @@ function Home() {
                   <div className="flex items-start justify-between py-2 border-b border-border/20 hover:border-border/40 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-base font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        <span
+                          className="text-base font-medium"
+                          style={{ fontFamily: 'Inter, sans-serif' }}
+                        >
                           {project.title}
                         </span>
-                        <Icon icon={ArrowUpRight01Icon} className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+                        <Icon
+                          icon={ArrowUpRight01Icon}
+                          className="size-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-hidden="true"
+                        />
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1" style={{ fontFamily: 'Inter, sans-serif' }}>
+                      <p
+                        className="text-sm text-muted-foreground mt-1"
+                        style={{ fontFamily: 'Inter, sans-serif' }}
+                      >
                         {project.description}
                       </p>
                     </div>
@@ -705,10 +802,20 @@ function Home() {
                             ? 'bg-green-500'
                             : 'bg-muted-foreground/30'
                         }`}
-                        aria-label={project.status === 'active' ? 'Active development' : 'Archived'}
+                        role="status"
+                        tabIndex={0}
+                        aria-label={
+                          project.status === 'active'
+                            ? 'Active development'
+                            : 'Archived'
+                        }
                       >
-                        <span className="absolute bottom-full right-0 mb-2 hidden group-hover/status:block whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background">
-                          <div className="font-mono">{project.status === 'active' ? 'Active development' : 'Archived'}</div>
+                        <span className="absolute bottom-full right-0 mb-2 hidden group-hover/status:block group-focus-within/status:block whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background">
+                          <div className="font-mono">
+                            {project.status === 'active'
+                              ? 'Active development'
+                              : 'Archived'}
+                          </div>
                           {lastUpdated && (
                             <div className="mt-0.5 font-mono text-[10px] opacity-70">
                               Last updated: {lastUpdated}
@@ -724,33 +831,55 @@ function Home() {
           </div>
         </section>
 
-        {/* 2026 Goals */}
         <section className="mb-16">
-          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>2026 Goals</h2>
-          <Goals2026 />
-        </section>
-
-        <section className="mb-16">
-          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>GitHub Activity</h2>
+          <h2
+            className="text-xl font-light mb-6 text-balance"
+            style={{ fontFamily: 'Crimson Pro, serif' }}
+          >
+            GitHub Activity
+          </h2>
           {githubCalendar ? (
             <GithubContributions calendar={githubCalendar} />
           ) : (
-            <p className="text-sm text-muted-foreground" style={{ fontFamily: 'Inter, sans-serif' }}>
-              Unable to load contributions right now. If you are developing locally, set a `GITHUB_TOKEN` environment
-              variable with access to the GitHub GraphQL API or check your network connection, then refresh.
+            <p
+              className="text-sm text-muted-foreground"
+              style={{ fontFamily: 'Inter, sans-serif' }}
+            >
+              Unable to load contributions right now. If you are developing
+              locally, set a `GITHUB_TOKEN` environment variable with access to
+              the GitHub GraphQL API or check your network connection, then
+              refresh.
             </p>
           )}
         </section>
 
         {/* Experience */}
         <section className="mb-16">
-          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>Experience</h2>
+          <h2
+            className="text-xl font-light mb-6 text-balance"
+            style={{ fontFamily: 'Crimson Pro, serif' }}
+          >
+            Experience
+          </h2>
           <div className="space-y-3">
             {experience.map((exp) => (
-              <div key={exp.company} className="flex justify-between items-start py-2">
+              <div
+                key={exp.company}
+                className="flex justify-between items-start py-2"
+              >
                 <div>
-                  <p className="text-base font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>{exp.role}</p>
-                  <p className="text-sm text-muted-foreground" style={{ fontFamily: 'Inter, sans-serif' }}>{exp.company}</p>
+                  <p
+                    className="text-base font-medium"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {exp.role}
+                  </p>
+                  <p
+                    className="text-sm text-muted-foreground"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {exp.company}
+                  </p>
                 </div>
                 <span className="text-sm text-muted-foreground font-mono">
                   {exp.period}
@@ -762,7 +891,12 @@ function Home() {
 
         {/* Contact */}
         <section className="mb-16">
-          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>Contact</h2>
+          <h2
+            className="text-xl font-light mb-6 text-balance"
+            style={{ fontFamily: 'Crimson Pro, serif' }}
+          >
+            Contact
+          </h2>
           <div className="flex flex-col items-start space-y-2">
             <ComesInGoesOutUnderline
               as="a"
@@ -807,10 +941,16 @@ function Home() {
 
         {/* Writing */}
         <section className="mb-16">
-          <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>Writing</h2>
+          <h2
+            className="text-xl font-light mb-6 text-balance"
+            style={{ fontFamily: 'Crimson Pro, serif' }}
+          >
+            Writing
+          </h2>
           <Link
             to="/blog"
-            className="block text-base hover:text-primary transition-colors" style={{ fontFamily: 'Inter, sans-serif' }}
+            className="block text-base hover:text-primary transition-colors"
+            style={{ fontFamily: 'Inter, sans-serif' }}
           >
             View blog →
           </Link>
@@ -818,7 +958,10 @@ function Home() {
 
         {/* Footer */}
         <footer className="pt-8 border-t border-border/20">
-          <p className="text-sm text-muted-foreground font-mono">
+          <p
+            className="text-sm text-muted-foreground font-mono"
+            suppressHydrationWarning
+          >
             © {new Date().getFullYear()} Quinn Sprouse
           </p>
         </footer>

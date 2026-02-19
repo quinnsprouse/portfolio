@@ -4,7 +4,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { MDXProvider } from '@mdx-js/react'
 import type { ReactNode } from 'react'
 import type { MDXComponents } from 'mdx/types'
-import { blogComponentsBySlug, blogFrontmatterBySlug, type BlogFrontmatter } from '@/lib/blog-posts'
+import { blogComponentsBySlug, blogFrontmatterBySlug } from '@/lib/blog-posts'
 
 const getBlogPost = createServerFn({ method: 'GET' })
   .inputValidator((slug: string) => slug)
@@ -31,84 +31,84 @@ export const Route = createFileRoute('/blog/$slug')({
   head: ({ loaderData, params }) => ({
     meta: [
       {
-        title: `${loaderData?.post.title} - Quinn Sprouse`
+        title: `${loaderData?.post.title} - Quinn Sprouse`,
       },
       {
         name: 'description',
-        content: loaderData?.post.description || 'Blog post by Quinn Sprouse'
+        content: loaderData?.post.description || 'Blog post by Quinn Sprouse',
       },
       {
         name: 'keywords',
-        content: `${loaderData?.post.title}, Quinn Sprouse, software development, web development, programming`
+        content: `${loaderData?.post.title}, Quinn Sprouse, software development, web development, programming`,
       },
       {
         property: 'og:title',
-        content: loaderData?.post.title || 'Blog Post'
+        content: loaderData?.post.title || 'Blog Post',
       },
       {
         property: 'og:description',
-        content: loaderData?.post.description || 'Blog post by Quinn Sprouse'
+        content: loaderData?.post.description || 'Blog post by Quinn Sprouse',
       },
       {
         property: 'og:type',
-        content: 'article'
+        content: 'article',
       },
       {
         property: 'og:url',
-        content: `https://quinnsprouse.com/blog/${params.slug}`
+        content: `https://quinnsprouse.com/blog/${params.slug}`,
       },
       {
         property: 'og:image',
-        content: 'https://quinnsprouse.com/og-image.png'
+        content: 'https://quinnsprouse.com/og-image.png',
       },
       {
         property: 'og:image:width',
-        content: '1200'
+        content: '1200',
       },
       {
         property: 'og:image:height',
-        content: '630'
+        content: '630',
       },
       {
         property: 'og:image:alt',
-        content: loaderData?.post.title || 'Blog Post'
+        content: loaderData?.post.title || 'Blog Post',
       },
       {
         property: 'article:author',
-        content: 'Quinn Sprouse'
+        content: 'Quinn Sprouse',
       },
       {
         property: 'article:published_time',
-        content: loaderData?.post.date
+        content: loaderData?.post.date,
       },
       {
         name: 'twitter:card',
-        content: 'summary_large_image'
+        content: 'summary_large_image',
       },
       {
         name: 'twitter:title',
-        content: loaderData?.post.title || 'Blog Post'
+        content: loaderData?.post.title || 'Blog Post',
       },
       {
         name: 'twitter:description',
-        content: loaderData?.post.description || 'Blog post by Quinn Sprouse'
+        content: loaderData?.post.description || 'Blog post by Quinn Sprouse',
       },
       {
         name: 'twitter:image',
-        content: 'https://quinnsprouse.com/og-image.png'
+        content: 'https://quinnsprouse.com/og-image.png',
       },
       {
         name: 'robots',
-        content: 'index, follow'
-      }
+        content: 'index, follow',
+      },
     ],
     links: [
       {
         rel: 'canonical',
-        href: `https://quinnsprouse.com/blog/${params.slug}`
-      }
-    ]
-  })
+        href: `https://quinnsprouse.com/blog/${params.slug}`,
+      },
+    ],
+  }),
 })
 
 function BlogPost() {
@@ -118,68 +118,87 @@ function BlogPost() {
   const PostContent = slug ? blogComponentsBySlug[slug] : undefined
 
   const parsedDate = post.date ? new Date(post.date) : null
-  const validDate = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : null
+  const validDate =
+    parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : null
   const dateLabel = validDate
-    ? validDate.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
+    ? new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }).format(validDate)
     : null
   const isoPublishedDate = validDate?.toISOString() ?? undefined
 
   // Structured data for SEO
   const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "headline": post.title,
-    "description": post.description,
-    "datePublished": isoPublishedDate,
-    "dateModified": isoPublishedDate,
-    "author": {
-      "@type": "Person",
-      "name": "Quinn Sprouse",
-      "url": "https://quinnsprouse.com"
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.description,
+    datePublished: isoPublishedDate,
+    dateModified: isoPublishedDate,
+    author: {
+      '@type': 'Person',
+      name: 'Quinn Sprouse',
+      url: 'https://quinnsprouse.com',
     },
-    "publisher": {
-      "@type": "Person",
-      "name": "Quinn Sprouse",
-      "url": "https://quinnsprouse.com"
+    publisher: {
+      '@type': 'Person',
+      name: 'Quinn Sprouse',
+      url: 'https://quinnsprouse.com',
     },
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": `https://quinnsprouse.com/blog/${post.title.toLowerCase().replace(/\s+/g, '-')}`
-    }
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `https://quinnsprouse.com/blog/${post.title.toLowerCase().replace(/\s+/g, '-')}`,
+    },
   }
 
   const markdownComponents: MDXComponents = {
     h1: ({ children }) => (
-      <h1 className="text-3xl font-light mt-12 mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>
+      <h1
+        className="text-3xl font-light mt-12 mb-6"
+        style={{ fontFamily: 'Crimson Pro, serif' }}
+      >
         {children}
       </h1>
     ),
     h2: ({ children }) => (
-      <h2 className="text-2xl font-light mt-10 mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>
+      <h2
+        className="text-2xl font-light mt-10 mb-4"
+        style={{ fontFamily: 'Crimson Pro, serif' }}
+      >
         {children}
       </h2>
     ),
     h3: ({ children }) => (
-      <h3 className="text-xl font-light mt-8 mb-3" style={{ fontFamily: 'Crimson Pro, serif' }}>
+      <h3
+        className="text-xl font-light mt-8 mb-3"
+        style={{ fontFamily: 'Crimson Pro, serif' }}
+      >
         {children}
       </h3>
     ),
     p: ({ children }) => (
-      <p className="text-base leading-[1.8] mb-6" style={{ fontFamily: 'Crimson Pro, serif', fontSize: '19px' }}>
+      <p
+        className="text-base leading-[1.8] mb-6"
+        style={{ fontFamily: 'Crimson Pro, serif', fontSize: '19px' }}
+      >
         {children}
       </p>
     ),
     ul: ({ children }) => (
-      <ul className="list-disc list-outside ml-6 space-y-2 mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>
+      <ul
+        className="list-disc list-outside ml-6 space-y-2 mb-6"
+        style={{ fontFamily: 'Crimson Pro, serif' }}
+      >
         {children}
       </ul>
     ),
     ol: ({ children }) => (
-      <ol className="list-decimal list-outside ml-6 space-y-2 mb-6" style={{ fontFamily: 'Crimson Pro, serif' }}>
+      <ol
+        className="list-decimal list-outside ml-6 space-y-2 mb-6"
+        style={{ fontFamily: 'Crimson Pro, serif' }}
+      >
         {children}
       </ol>
     ),
@@ -188,7 +207,13 @@ function BlogPost() {
         {children}
       </li>
     ),
-    code: ({ inline, children }: { inline?: boolean; children?: ReactNode }) => {
+    code: ({
+      inline,
+      children,
+    }: {
+      inline?: boolean
+      children?: ReactNode
+    }) => {
       if (inline) {
         return (
           <code className="px-1 py-0.5 bg-muted/50 rounded text-xs font-mono">
@@ -203,7 +228,14 @@ function BlogPost() {
       )
     },
     blockquote: ({ children }) => (
-      <blockquote className="border-l-3 border-muted-foreground/30 pl-6 italic mb-6" style={{ fontFamily: 'Crimson Pro, serif', fontSize: '19px', fontStyle: 'italic' }}>
+      <blockquote
+        className="border-l-3 border-muted-foreground/30 pl-6 italic mb-6"
+        style={{
+          fontFamily: 'Crimson Pro, serif',
+          fontSize: '19px',
+          fontStyle: 'italic',
+        }}
+      >
         {children}
       </blockquote>
     ),
@@ -222,6 +254,7 @@ function BlogPost() {
         src={src ?? ''}
         alt={alt ?? ''}
         className="w-full h-auto rounded-lg my-8"
+        loading="lazy"
       />
     ),
   }
@@ -231,12 +264,15 @@ function BlogPost() {
       <div className="min-h-dvh bg-background text-foreground">
         <div className="mx-auto max-w-2xl px-6 py-24 text-center">
           <p className="text-sm font-mono text-muted-foreground mb-4">404</p>
-          <h1 className="text-3xl font-light mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>
+          <h1
+            className="text-3xl font-light mb-4"
+            style={{ fontFamily: 'Crimson Pro, serif' }}
+          >
             Post not found
           </h1>
           <Link
             to="/blog"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors font-mono"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
           >
             ← Back to blog
           </Link>
@@ -256,11 +292,14 @@ function BlogPost() {
         <header className="mb-16">
           <Link
             to="/blog"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-block mb-8 font-mono"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-block mb-8 font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
           >
             ← Back to blog
           </Link>
-          <h1 className="text-4xl font-light mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>
+          <h1
+            className="text-4xl font-light mb-4 text-balance"
+            style={{ fontFamily: 'Crimson Pro, serif' }}
+          >
             {post.title}
           </h1>
           <div className="flex items-center gap-4 text-sm text-muted-foreground font-mono">

@@ -3,7 +3,9 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { blogFrontmatterList } from '@/lib/blog-posts'
 
-const getBlogPosts = createServerFn({ method: 'GET' }).handler(async () => blogFrontmatterList)
+const getBlogPosts = createServerFn({ method: 'GET' }).handler(
+  async () => blogFrontmatterList
+)
 
 export const Route = createFileRoute('/blog/')({
   component: Blog,
@@ -14,76 +16,81 @@ export const Route = createFileRoute('/blog/')({
   head: () => ({
     meta: [
       {
-        title: 'Blog - Quinn Sprouse | Writing on Software & Product Development'
+        title:
+          'Blog - Quinn Sprouse | Writing on Software & Product Development',
       },
       {
         name: 'description',
-        content: 'Thoughts on software development, design, and building products. Technical deep-dives, project retrospectives, and insights from a product engineer.'
+        content:
+          'Thoughts on software development, design, and building products. Technical deep-dives, project retrospectives, and insights from a product engineer.',
       },
       {
         name: 'keywords',
-        content: 'Quinn Sprouse blog, software development, product engineering, technical writing, React, TypeScript, web development'
+        content:
+          'Quinn Sprouse blog, software development, product engineering, technical writing, React, TypeScript, web development',
       },
       {
         property: 'og:title',
-        content: 'Blog - Quinn Sprouse'
+        content: 'Blog - Quinn Sprouse',
       },
       {
         property: 'og:description',
-        content: 'Thoughts on software development, design, and building products. Technical deep-dives and project retrospectives.'
+        content:
+          'Thoughts on software development, design, and building products. Technical deep-dives and project retrospectives.',
       },
       {
         property: 'og:type',
-        content: 'website'
+        content: 'website',
       },
       {
         property: 'og:url',
-        content: 'https://quinnsprouse.com/blog'
+        content: 'https://quinnsprouse.com/blog',
       },
       {
         property: 'og:image',
-        content: 'https://quinnsprouse.com/og-image.png'
+        content: 'https://quinnsprouse.com/og-image.png',
       },
       {
         property: 'og:image:width',
-        content: '1200'
+        content: '1200',
       },
       {
         property: 'og:image:height',
-        content: '630'
+        content: '630',
       },
       {
         property: 'og:image:alt',
-        content: 'Blog - Quinn Sprouse'
+        content: 'Blog - Quinn Sprouse',
       },
       {
         name: 'twitter:card',
-        content: 'summary_large_image'
+        content: 'summary_large_image',
       },
       {
         name: 'twitter:image',
-        content: 'https://quinnsprouse.com/og-image.png'
+        content: 'https://quinnsprouse.com/og-image.png',
       },
       {
         name: 'twitter:title',
-        content: 'Blog - Quinn Sprouse'
+        content: 'Blog - Quinn Sprouse',
       },
       {
         name: 'twitter:description',
-        content: 'Thoughts on software development, design, and building products.'
+        content:
+          'Thoughts on software development, design, and building products.',
       },
       {
         name: 'robots',
-        content: 'index, follow'
-      }
+        content: 'index, follow',
+      },
     ],
     links: [
       {
         rel: 'canonical',
-        href: 'https://quinnsprouse.com/blog'
-      }
-    ]
-  })
+        href: 'https://quinnsprouse.com/blog',
+      },
+    ],
+  }),
 })
 
 function Blog() {
@@ -92,11 +99,11 @@ function Blog() {
     if (!value) return null
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return null
-    return date.toLocaleDateString('en-US', {
+    return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-    })
+    }).format(date)
   }
 
   return (
@@ -106,12 +113,20 @@ function Blog() {
         <header className="mb-16">
           <Link
             to="/"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-block mb-8 font-mono"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-block mb-8 font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
           >
             ← Back
           </Link>
-          <h1 className="text-3xl font-light mb-4" style={{ fontFamily: 'Crimson Pro, serif' }}>Writing</h1>
-          <p className="text-base text-muted-foreground leading-relaxed" style={{ fontFamily: 'Inter, sans-serif' }}>
+          <h1
+            className="text-3xl font-light mb-4 text-balance"
+            style={{ fontFamily: 'Crimson Pro, serif' }}
+          >
+            Writing
+          </h1>
+          <p
+            className="text-base text-muted-foreground leading-relaxed"
+            style={{ fontFamily: 'Inter, sans-serif' }}
+          >
             Thoughts on software development, design, and building products.
           </p>
         </header>
@@ -120,7 +135,12 @@ function Blog() {
         <section>
           <div className="space-y-4">
             {posts.length === 0 ? (
-              <p className="text-base text-muted-foreground" style={{ fontFamily: 'Inter, sans-serif' }}>No posts yet.</p>
+              <p
+                className="text-base text-muted-foreground"
+                style={{ fontFamily: 'Inter, sans-serif' }}
+              >
+                No posts yet.
+              </p>
             ) : (
               posts.map((post) => (
                 <Link
@@ -131,9 +151,17 @@ function Blog() {
                 >
                   <div className="flex items-start justify-between py-2 border-b border-border/20 hover:border-border/40 transition-colors">
                     <div className="flex-1">
-                      <span className="text-base font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>{post.title}</span>
+                      <span
+                        className="text-base font-medium"
+                        style={{ fontFamily: 'Inter, sans-serif' }}
+                      >
+                        {post.title}
+                      </span>
                       {post.description && (
-                        <p className="text-sm text-muted-foreground mt-1" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        <p
+                          className="text-sm text-muted-foreground mt-1"
+                          style={{ fontFamily: 'Inter, sans-serif' }}
+                        >
                           {post.description}
                         </p>
                       )}
@@ -152,7 +180,8 @@ function Blog() {
 
         <footer className="mt-16 border-t border-border/20 pt-6">
           <p
-            className="text-xs text-muted-foreground" style={{ fontFamily: 'Inter, sans-serif' }}
+            className="text-xs text-muted-foreground"
+            style={{ fontFamily: 'Inter, sans-serif' }}
             aria-live="polite"
           >
             written by hand—never generated by ai.

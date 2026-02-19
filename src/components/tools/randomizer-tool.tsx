@@ -14,7 +14,7 @@ function getRandomPrompt(exclude?: string) {
   const available = prompts.filter((prompt) => prompt !== exclude)
   const list = available.length > 0 ? available : prompts
   const index = Math.floor(Math.random() * list.length)
-  return list[index]
+  return list[index] ?? prompts[0]!
 }
 
 export function RandomizerTool() {
@@ -42,13 +42,15 @@ export function RandomizerTool() {
       <blockquote
         className="rounded-xl border border-border/40 bg-background/80 p-6 text-2xl font-light leading-relaxed text-foreground"
         style={{ fontFamily: 'Crimson Pro, serif' }}
+        aria-live="polite"
+        aria-atomic="true"
       >
         {prompt}
       </blockquote>
 
       <button
         onClick={handleShuffle}
-        className="inline-flex items-center gap-2 rounded-md border border-border/60 px-5 py-2 text-sm font-semibold uppercase tracking-wide text-foreground transition hover:bg-foreground hover:text-background"
+        className="inline-flex items-center gap-2 rounded-md border border-border/60 px-5 py-2 text-sm font-semibold uppercase tracking-wide text-foreground transition hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         Shuffle prompt
       </button>

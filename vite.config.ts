@@ -26,23 +26,37 @@ export default defineConfig({
     },
     // Inline small assets to reduce requests
     assetsInlineLimit: 4096,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        const warningFromTanStackStartDependency =
+          warning.code === 'UNUSED_EXTERNAL_IMPORT' &&
+          typeof warning.id === 'string' &&
+          warning.id.includes('node_modules/@tanstack/start-')
+
+        if (warningFromTanStackStartDependency) {
+          return
+        }
+
+        warn(warning)
+      },
+    },
   },
   plugins: [
     {
       enforce: 'pre',
       ...mdx({
         mdExtensions: ['.md', '.mdx'],
-        remarkPlugins: [remarkFrontmatter, [remarkMdxFrontmatter, { name: 'frontmatter' }], remarkGfm],
+        remarkPlugins: [
+          remarkFrontmatter,
+          [remarkMdxFrontmatter, { name: 'frontmatter' }],
+          remarkGfm,
+        ],
         providerImportSource: '@mdx-js/react',
       }),
     },
     tsConfigPaths(),
     tanstackStart(),
-    nitro({
-      config: {
-        preset: 'vercel',
-      },
-    }),
+    nitro({ preset: 'vercel' }),
     viteReact({
       include: /\.(mdx|md|jsx|js|tsx|ts)$/,
     }),

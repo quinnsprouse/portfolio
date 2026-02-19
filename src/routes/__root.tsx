@@ -23,6 +23,12 @@ export const Route = createRootRoute({
       {
         name: 'theme-color',
         content: '#ffffff',
+        media: '(prefers-color-scheme: light)',
+      },
+      {
+        name: 'theme-color',
+        content: '#252525',
+        media: '(prefers-color-scheme: dark)',
       },
       {
         title: 'Quinn Sprouse',
@@ -67,7 +73,7 @@ function RootComponent() {
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
         <style
@@ -113,6 +119,12 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         </noscript>
       </head>
       <body>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+        >
+          Skip to main content
+        </a>
         {children}
         <Scripts />
         <Analytics />
