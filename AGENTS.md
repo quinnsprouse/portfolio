@@ -23,4 +23,4 @@ Use this loop for non-trivial work:
 - Treat `src/routeTree.gen.ts` as generated/read-only.
 - Keep server-only fetch/secrets in `createServerFn` handlers.
 - Build UI from `src/components/ui` primitives and compose classes with `cn`.
-- Keep blog content in `src/content` with slug/filename parity.
+- Keep generated and static content organized under `src/content` with clear filename parity when slugs are used.

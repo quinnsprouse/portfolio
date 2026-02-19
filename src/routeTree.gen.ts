@@ -11,10 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ToolsIndexRouteImport } from './routes/tools.index'
-import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as ToolsLoginRouteImport } from './routes/tools.login'
 import { Route as ToolsSlugRouteImport } from './routes/tools.$slug'
-import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,11 +22,6 @@ const IndexRoute = IndexRouteImport.update({
 const ToolsIndexRoute = ToolsIndexRouteImport.update({
   id: '/tools/',
   path: '/tools/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogIndexRoute = BlogIndexRouteImport.update({
-  id: '/blog/',
-  path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ToolsLoginRoute = ToolsLoginRouteImport.update({
@@ -41,64 +34,38 @@ const ToolsSlugRoute = ToolsSlugRouteImport.update({
   path: '/tools/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/blog/$slug',
-  path: '/blog/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/blog/$slug': typeof BlogSlugRoute
   '/tools/$slug': typeof ToolsSlugRoute
   '/tools/login': typeof ToolsLoginRoute
-  '/blog/': typeof BlogIndexRoute
   '/tools/': typeof ToolsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/blog/$slug': typeof BlogSlugRoute
   '/tools/$slug': typeof ToolsSlugRoute
   '/tools/login': typeof ToolsLoginRoute
-  '/blog': typeof BlogIndexRoute
   '/tools': typeof ToolsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/blog/$slug': typeof BlogSlugRoute
   '/tools/$slug': typeof ToolsSlugRoute
   '/tools/login': typeof ToolsLoginRoute
-  '/blog/': typeof BlogIndexRoute
   '/tools/': typeof ToolsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/blog/$slug'
-    | '/tools/$slug'
-    | '/tools/login'
-    | '/blog/'
-    | '/tools/'
+  fullPaths: '/' | '/tools/$slug' | '/tools/login' | '/tools/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/blog/$slug' | '/tools/$slug' | '/tools/login' | '/blog' | '/tools'
-  id:
-    | '__root__'
-    | '/'
-    | '/blog/$slug'
-    | '/tools/$slug'
-    | '/tools/login'
-    | '/blog/'
-    | '/tools/'
+  to: '/' | '/tools/$slug' | '/tools/login' | '/tools'
+  id: '__root__' | '/' | '/tools/$slug' | '/tools/login' | '/tools/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BlogSlugRoute: typeof BlogSlugRoute
   ToolsSlugRoute: typeof ToolsSlugRoute
   ToolsLoginRoute: typeof ToolsLoginRoute
-  BlogIndexRoute: typeof BlogIndexRoute
   ToolsIndexRoute: typeof ToolsIndexRoute
 }
 
@@ -118,13 +85,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/': {
-      id: '/blog/'
-      path: '/blog'
-      fullPath: '/blog/'
-      preLoaderRoute: typeof BlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tools/login': {
       id: '/tools/login'
       path: '/tools/login'
@@ -139,22 +99,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/blog/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BlogSlugRoute: BlogSlugRoute,
   ToolsSlugRoute: ToolsSlugRoute,
   ToolsLoginRoute: ToolsLoginRoute,
-  BlogIndexRoute: BlogIndexRoute,
   ToolsIndexRoute: ToolsIndexRoute,
 }
 export const routeTree = rootRouteImport

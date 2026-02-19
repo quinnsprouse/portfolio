@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 
 import { Icon, ArrowUpRight01Icon } from '@/components/icons'
@@ -18,7 +18,6 @@ const getGitHubRepoInfo = createServerFn({ method: 'GET' }).handler(
   async () => {
     const repos = [
       { name: 'bible-app', url: 'quinnsprouse/bible-app' },
-      { name: 'personal-photo-blog', url: 'quinnsprouse/personal-photo-blog' },
       { name: 'workit', url: 'quinnsprouse/workit' },
     ]
 
@@ -53,7 +52,6 @@ const getGitHubRepoInfo = createServerFn({ method: 'GET' }).handler(
           // Private repo without auth - use fallback dates
           const fallbackDates: Record<string, string> = {
             'bible-app': '2024-12-18',
-            'personal-photo-blog': '2024-12-15',
             workit: '2023-11-22',
           }
           if (fallbackDates[repo.name]) {
@@ -65,7 +63,6 @@ const getGitHubRepoInfo = createServerFn({ method: 'GET' }).handler(
         // Use fallback dates on error
         const fallbackDates: Record<string, string> = {
           'bible-app': '2024-12-18',
-          'personal-photo-blog': '2024-12-15',
           workit: '2023-11-22',
         }
         if (fallbackDates[repo.name]) {
@@ -626,7 +623,6 @@ const projects: Project[] = [
     link: 'https://pocketgr.com',
     year: '2024',
     status: 'active',
-    repoKey: 'personal-photo-blog',
   },
   {
     title: 'Workit',
@@ -725,14 +721,7 @@ function Home() {
                   rel="noreferrer"
                 >
                   Lumina Bible
-                </a>{' '}
-                while documenting the journey in{' '}
-                <Link
-                  to="/blog"
-                  className="underline decoration-dotted underline-offset-4 transition-colors hover:text-primary"
-                >
-                  long-form notes
-                </Link>
+                </a>
                 .
               </p>
             </div>
@@ -937,23 +926,6 @@ function Home() {
               x.com/QuinnSprouse
             </ComesInGoesOutUnderline>
           </div>
-        </section>
-
-        {/* Writing */}
-        <section className="mb-16">
-          <h2
-            className="text-xl font-light mb-6 text-balance"
-            style={{ fontFamily: 'Crimson Pro, serif' }}
-          >
-            Writing
-          </h2>
-          <Link
-            to="/blog"
-            className="block text-base hover:text-primary transition-colors"
-            style={{ fontFamily: 'Inter, sans-serif' }}
-          >
-            View blog →
-          </Link>
         </section>
 
         {/* Footer */}

@@ -19,7 +19,7 @@ test('home page renders key sections without runtime errors', async ({
   await expect(
     page.getByRole('heading', { name: 'GitHub Activity' })
   ).toBeVisible()
-  await expect(page.getByRole('link', { name: /view blog/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Contact' })).toBeVisible()
 
   expect(pageErrors).toHaveLength(0)
 })
