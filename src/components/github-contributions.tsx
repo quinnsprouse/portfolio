@@ -1,4 +1,4 @@
-import { memo, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 
 import type {
@@ -46,23 +46,51 @@ const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
 const parseIsoDateUtc = (isoDate: string) =>
   new Date(`${isoDate}T00:00:00.000Z`)
 
-const MOBILE_WEEK_LIMIT = 26
-const GRID_GAP = 4
-const MOBILE_GRID_GAP = 3
-const MOBILE_CELL_MIN = 14
+const CELL_GAP = 2
+const LEGEND_GAP = 3
+const MOBILE_GRID_GAP = CELL_GAP
+const DESKTOP_CELL_SIZE = 11
+const MOBILE_CELL_SIZE = 14
 
 export const GithubContributions = memo(function GithubContributions({
   calendar,
 }: GithubContributionsProps) {
-  const {
-    weeks,
-    weekLabels,
-    recentWeeks,
-    recentWeekLabels,
-    totalContributions,
-    levelColors,
-  } = calendar
+  const { weeks, weekLabels, totalContributions, levelColors } = calendar
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
+  const [desktopCellSize, setDesktopCellSize] = useState(DESKTOP_CELL_SIZE)
+  const desktopColumnRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!desktopColumnRef.current) {
+      return
+    }
+
+    const updateDesktopCellSize = () => {
+      const containerWidth = desktopColumnRef.current?.clientWidth ?? 0
+
+      if (containerWidth <= 0) {
+        return
+      }
+
+      const totalGapWidth = Math.max(weeks.length - 1, 0) * CELL_GAP
+      const nextSize = (containerWidth - totalGapWidth) / weeks.length
+
+      if (!Number.isFinite(nextSize) || nextSize <= 0) {
+        return
+      }
+
+      setDesktopCellSize((currentSize) =>
+        Math.abs(currentSize - nextSize) < 0.1 ? currentSize : nextSize
+      )
+    }
+
+    updateDesktopCellSize()
+
+    const observer = new ResizeObserver(updateDesktopCellSize)
+    observer.observe(desktopColumnRef.current)
+
+    return () => observer.disconnect()
+  }, [weeks.length])
 
   if (!weeks.length) {
     return null
@@ -85,21 +113,21 @@ export const GithubContributions = memo(function GithubContributions({
 
   const buildColumnStyle = (
     count: number,
-    options?: { minCell?: number; gap?: number }
+    options?: { cellSize?: number; gap?: number }
   ): CSSProperties => ({
-    gridTemplateColumns: options?.minCell
-      ? `repeat(${count}, minmax(${options.minCell}px, 1fr))`
-      : `repeat(${count}, minmax(0, 1fr))`,
-    columnGap: `${options?.gap ?? GRID_GAP}px`,
+    gridTemplateColumns: `repeat(${count}, ${options?.cellSize ?? DESKTOP_CELL_SIZE}px)`,
+    columnGap: `${options?.gap ?? CELL_GAP}px`,
   })
 
-  const buildRowStyle = (gap: number): CSSProperties => ({
-    gridTemplateRows: 'repeat(7, minmax(0, 1fr))',
+  const buildRowStyle = (gap: number, cellSize: number): CSSProperties => ({
+    gridTemplateRows: `repeat(7, ${cellSize}px)`,
     rowGap: `${gap}px`,
   })
 
-  const columnStyle = buildColumnStyle(weeks.length)
-  const weekRowStyle = buildRowStyle(GRID_GAP)
+  const columnStyle = buildColumnStyle(weeks.length, {
+    cellSize: desktopCellSize,
+  })
+  const weekRowStyle = buildRowStyle(CELL_GAP, desktopCellSize)
 
   // Render a single day cell
   const renderDayCell = (
@@ -112,7 +140,7 @@ export const GithubContributions = memo(function GithubContributions({
       return (
         <span
           key={`day-${dayOfWeek}-${weekIndex}-empty`}
-          className="aspect-square w-full"
+          className="block aspect-square w-full"
         />
       )
     }
@@ -157,7 +185,7 @@ export const GithubContributions = memo(function GithubContributions({
         key={`day-${dayOfWeek}-${weekIndex}`}
         role="img"
         tabIndex={0}
-        className="aspect-square w-full rounded-[3px] border border-border/20 hover:border-border/40 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors cursor-default"
+        className="block aspect-square w-full rounded-[3px] border border-border/20 hover:border-border/40 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors cursor-default"
         style={{ backgroundColor: background }}
         onMouseEnter={(e) => showTooltip(e.currentTarget)}
         onMouseLeave={hideTooltip}
@@ -246,12 +274,14 @@ export const GithubContributions = memo(function GithubContributions({
     }
 
     return (
-      <div className="grid md:grid-cols-[auto_1fr] md:gap-x-4 md:gap-y-3">
-        <div className="hidden md:block" aria-hidden />
-        {monthHeader}
+      <div className="grid sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4 sm:gap-y-3">
+        <div className="hidden sm:block" aria-hidden />
+        <div ref={desktopColumnRef} className="min-w-0 w-full">
+          {monthHeader}
+        </div>
 
         <div
-          className="hidden md:grid self-stretch text-[11px] font-medium text-muted-foreground"
+          className="hidden sm:grid self-stretch text-[11px] font-medium text-muted-foreground"
           style={variants.rowStyle}
           aria-hidden
         >
@@ -269,29 +299,22 @@ export const GithubContributions = memo(function GithubContributions({
           ))}
         </div>
 
-        {dayGrid}
+        <div className="min-w-0">{dayGrid}</div>
       </div>
     )
   }
 
-  const mobileWeeks = recentWeeks?.length
-    ? recentWeeks
-    : weeks.slice(-MOBILE_WEEK_LIMIT)
-  const mobileLabels = recentWeekLabels?.length
-    ? recentWeekLabels
-    : weekLabels.slice(-MOBILE_WEEK_LIMIT)
   const mobileGridMinWidth =
-    mobileWeeks.length * MOBILE_CELL_MIN +
-    (mobileWeeks.length - 1) * MOBILE_GRID_GAP
+    weeks.length * MOBILE_CELL_SIZE + (weeks.length - 1) * MOBILE_GRID_GAP
   const mobileColumnStyle = {
-    ...buildColumnStyle(mobileWeeks.length, {
-      minCell: MOBILE_CELL_MIN,
+    ...buildColumnStyle(weeks.length, {
+      cellSize: MOBILE_CELL_SIZE,
       gap: MOBILE_GRID_GAP,
     }),
     minWidth: mobileGridMinWidth,
   }
   const mobileRowStyle = {
-    ...buildRowStyle(MOBILE_GRID_GAP),
+    ...buildRowStyle(MOBILE_GRID_GAP, MOBILE_CELL_SIZE),
     minWidth: mobileGridMinWidth,
   }
 
@@ -316,7 +339,7 @@ export const GithubContributions = memo(function GithubContributions({
         )}
       </div>
 
-      <div className="hidden md:block">
+      <div className="hidden sm:block">
         {renderCalendar(weeks, weekLabels, {
           showWeekdayColumn: true,
           columnStyle,
@@ -324,11 +347,11 @@ export const GithubContributions = memo(function GithubContributions({
         })}
       </div>
 
-      <div className="md:hidden">
+      <div className="sm:hidden">
         <p className="mb-2 text-[11px] text-muted-foreground/80">
           Swipe horizontally for more days
         </p>
-        {renderCalendar(mobileWeeks, mobileLabels, {
+        {renderCalendar(weeks, weekLabels, {
           showWeekdayColumn: false,
           columnStyle: mobileColumnStyle,
           rowStyle: mobileRowStyle,
@@ -338,7 +361,7 @@ export const GithubContributions = memo(function GithubContributions({
 
       <div className="mt-4 flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground md:mt-5">
         <span>Less</span>
-        <div className="flex items-center" style={{ gap: `${GRID_GAP}px` }}>
+        <div className="flex items-center" style={{ gap: `${LEGEND_GAP}px` }}>
           {levelColors.map((color, index) => (
             <span
               key={`legend-${index}`}
